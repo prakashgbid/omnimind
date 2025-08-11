@@ -1,0 +1,518 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OSA - Real-time Intelligence Monitor</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --bg-primary: #0a0a0a;
+            --bg-secondary: #1a1a1a;
+            --bg-tertiary: #252525;
+            --text-primary: #ffffff;
+            --text-secondary: #a0a0a0;
+            --accent-blue: #3b82f6;
+            --accent-green: #10b981;
+            --accent-purple: #8b5cf6;
+            --accent-orange: #f59e0b;
+            --accent-red: #ef4444;
+            --border: #2a2a2a;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            line-height: 1.6;
+            overflow-x: hidden;
+        }
+
+        .container {
+            max-width: 1800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        /* Header */
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 20px 0;
+            border-bottom: 1px solid var(--border);
+            margin-bottom: 30px;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .logo-icon {
+            width: 50px;
+            height: 50px;
+            background: linear-gradient(135deg, var(--accent-purple), var(--accent-blue));
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+        }
+
+        .logo-text h1 {
+            font-size: 24px;
+            font-weight: 700;
+        }
+
+        .logo-text p {
+            font-size: 12px;
+            color: var(--text-secondary);
+        }
+
+        .header-controls {
+            display: flex;
+            gap: 15px;
+        }
+
+        .btn {
+            padding: 10px 20px;
+            border-radius: 8px;
+            border: none;
+            cursor: pointer;
+            font-weight: 500;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn-primary {
+            background: var(--accent-blue);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #2563eb;
+        }
+
+        .btn-secondary {
+            background: var(--bg-tertiary);
+            color: var(--text-primary);
+            border: 1px solid var(--border);
+        }
+
+        .btn-secondary:hover {
+            background: var(--bg-secondary);
+        }
+
+        .status-indicator {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px 20px;
+            background: var(--bg-secondary);
+            border-radius: 8px;
+        }
+
+        .status-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            animation: pulse 2s infinite;
+        }
+
+        .status-dot.active {
+            background: var(--accent-green);
+        }
+
+        .status-dot.inactive {
+            background: var(--accent-red);
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        /* Main Layout */
+        .main-grid {
+            display: grid;
+            grid-template-columns: 250px 1fr 350px;
+            gap: 20px;
+        }
+
+        /* Sidebar */
+        .sidebar {
+            background: var(--bg-secondary);
+            border-radius: 12px;
+            padding: 20px;
+        }
+
+        .sidebar h3 {
+            font-size: 14px;
+            text-transform: uppercase;
+            color: var(--text-secondary);
+            margin-bottom: 15px;
+        }
+
+        .metric-card {
+            background: var(--bg-tertiary);
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 10px;
+        }
+
+        .metric-value {
+            font-size: 24px;
+            font-weight: 600;
+            color: var(--accent-blue);
+        }
+
+        .metric-label {
+            font-size: 12px;
+            color: var(--text-secondary);
+        }
+
+        /* Log Viewer */
+        .log-viewer {
+            background: var(--bg-secondary);
+            border-radius: 12px;
+            padding: 20px;
+            height: calc(100vh - 200px);
+            display: flex;
+            flex-direction: column;
+        }
+
+        .log-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .log-filters {
+            display: flex;
+            gap: 10px;
+        }
+
+        .filter-chip {
+            padding: 6px 12px;
+            background: var(--bg-tertiary);
+            border-radius: 6px;
+            font-size: 12px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .filter-chip.active {
+            background: var(--accent-blue);
+        }
+
+        .log-container {
+            flex: 1;
+            overflow-y: auto;
+            background: var(--bg-primary);
+            border-radius: 8px;
+            padding: 15px;
+        }
+
+        .log-entry {
+            display: flex;
+            gap: 15px;
+            padding: 12px;
+            margin-bottom: 8px;
+            background: var(--bg-secondary);
+            border-radius: 6px;
+            border-left: 3px solid transparent;
+            transition: all 0.3s;
+            animation: slideIn 0.3s ease-out;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateX(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        .log-entry:hover {
+            background: var(--bg-tertiary);
+        }
+
+        .log-entry.thinking { border-left-color: var(--accent-purple); }
+        .log-entry.learning { border-left-color: var(--accent-blue); }
+        .log-entry.executing { border-left-color: var(--accent-green); }
+        .log-entry.error { border-left-color: var(--accent-red); }
+        .log-entry.delegation { border-left-color: var(--accent-orange); }
+
+        .log-time {
+            color: var(--text-secondary);
+            font-size: 12px;
+            min-width: 80px;
+        }
+
+        .log-type {
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: 600;
+            min-width: 80px;
+            text-align: center;
+        }
+
+        .log-type.thinking { background: var(--accent-purple); }
+        .log-type.learning { background: var(--accent-blue); }
+        .log-type.executing { background: var(--accent-green); }
+        .log-type.error { background: var(--accent-red); }
+        .log-type.delegation { background: var(--accent-orange); }
+
+        .log-message {
+            flex: 1;
+            color: var(--text-primary);
+            font-size: 14px;
+        }
+
+        /* Thought Graph */
+        .thought-graph {
+            background: var(--bg-secondary);
+            border-radius: 12px;
+            padding: 20px;
+        }
+
+        .thought-graph h3 {
+            font-size: 16px;
+            margin-bottom: 15px;
+        }
+
+        .graph-container {
+            height: 300px;
+            background: var(--bg-primary);
+            border-radius: 8px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .thought-node {
+            position: absolute;
+            width: 80px;
+            height: 80px;
+            background: var(--bg-tertiary);
+            border: 2px solid var(--accent-purple);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 10px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .thought-node:hover {
+            transform: scale(1.1);
+            background: var(--accent-purple);
+        }
+
+        .thought-connection {
+            position: absolute;
+            height: 1px;
+            background: var(--accent-purple);
+            opacity: 0.3;
+            transform-origin: left center;
+        }
+
+        /* Sessions */
+        .sessions-panel {
+            background: var(--bg-secondary);
+            border-radius: 12px;
+            padding: 20px;
+            margin-top: 20px;
+        }
+
+        .session-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px;
+            background: var(--bg-tertiary);
+            border-radius: 6px;
+            margin-bottom: 8px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .session-item:hover {
+            background: var(--accent-blue);
+        }
+
+        .session-info {
+            flex: 1;
+        }
+
+        .session-name {
+            font-weight: 500;
+            margin-bottom: 4px;
+        }
+
+        .session-meta {
+            font-size: 12px;
+            color: var(--text-secondary);
+        }
+
+        /* Responsive */
+        @media (max-width: 1400px) {
+            .main-grid {
+                grid-template-columns: 1fr 350px;
+            }
+            .sidebar {
+                display: none;
+            }
+        }
+
+        @media (max-width: 900px) {
+            .main-grid {
+                grid-template-columns: 1fr;
+            }
+            .thought-graph {
+                display: none;
+            }
+        }
+
+        /* Scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: var(--bg-primary);
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: var(--bg-tertiary);
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: var(--accent-blue);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <div class="header">
+            <div class="logo">
+                <div class="logo-icon">🧠</div>
+                <div class="logo-text">
+                    <h1>OSA Monitor</h1>
+                    <p>Real-time Intelligence Tracking</p>
+                </div>
+            </div>
+            <div class="header-controls">
+                <div class="status-indicator">
+                    <div class="status-dot active"></div>
+                    <span id="status-text">Connected</span>
+                </div>
+                <button class="btn btn-secondary" onclick="clearLogs()">
+                    <span>🗑️</span> Clear
+                </button>
+                <button class="btn btn-secondary" onclick="exportLogs()">
+                    <span>💾</span> Export
+                </button>
+                <button class="btn btn-primary" onclick="saveSession()">
+                    <span>📁</span> Save Session
+                </button>
+            </div>
+        </div>
+
+        <!-- Main Grid -->
+        <div class="main-grid">
+            <!-- Sidebar Metrics -->
+            <div class="sidebar">
+                <h3>Live Metrics</h3>
+                
+                <div class="metric-card">
+                    <div class="metric-value" id="thoughts-count">0</div>
+                    <div class="metric-label">Total Thoughts</div>
+                </div>
+                
+                <div class="metric-card">
+                    <div class="metric-value" id="chains-count">0</div>
+                    <div class="metric-label">Reasoning Chains</div>
+                </div>
+                
+                <div class="metric-card">
+                    <div class="metric-value" id="contexts-count">0</div>
+                    <div class="metric-label">Active Contexts</div>
+                </div>
+                
+                <div class="metric-card">
+                    <div class="metric-value" id="blockers-count">0</div>
+                    <div class="metric-label">Blockers Resolved</div>
+                </div>
+                
+                <div class="metric-card">
+                    <div class="metric-value" id="patterns-count">0</div>
+                    <div class="metric-label">Patterns Learned</div>
+                </div>
+                
+                <div class="metric-card">
+                    <div class="metric-value" id="efficiency-value">0%</div>
+                    <div class="metric-label">Efficiency Gain</div>
+                </div>
+            </div>
+
+            <!-- Log Viewer -->
+            <div class="log-viewer">
+                <div class="log-header">
+                    <h2>Activity Log</h2>
+                    <div class="log-filters">
+                        <div class="filter-chip active" onclick="toggleFilter('all')">All</div>
+                        <div class="filter-chip" onclick="toggleFilter('thinking')">Thinking</div>
+                        <div class="filter-chip" onclick="toggleFilter('learning')">Learning</div>
+                        <div class="filter-chip" onclick="toggleFilter('executing')">Executing</div>
+                        <div class="filter-chip" onclick="toggleFilter('delegation')">Delegation</div>
+                        <div class="filter-chip" onclick="toggleFilter('error')">Errors</div>
+                    </div>
+                </div>
+                <div class="log-container" id="log-container">
+                    <!-- Logs will be inserted here -->
+                </div>
+            </div>
+
+            <!-- Right Panel -->
+            <div>
+                <!-- Thought Graph -->
+                <div class="thought-graph">
+                    <h3>Thought Graph</h3>
+                    <div class="graph-container" id="thought-graph">
+                        <!-- Thought nodes will be rendered here -->
+                    </div>
+                </div>
+
+                <!-- Sessions -->
+                <div class="sessions-panel">
+                    <h3>Recent Sessions</h3>
+                    <div id="sessions-list">
+                        <!-- Sessions will be listed here -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
