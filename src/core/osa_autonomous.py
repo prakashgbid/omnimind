@@ -24,6 +24,7 @@ from .logger import setup_logger
 from .langchain_engine import get_langchain_engine, LANGCHAIN_AVAILABLE
 from .self_learning import get_learning_system, LearningDomain, FeedbackType
 from .task_planner import get_task_planner, TaskType, TaskPriority
+from .mcp_client import get_mcp_client
 
 
 class IntentType(Enum):
@@ -80,6 +81,14 @@ class OSAAutonomous:
             self.logger.info("Task planning system initialized")
         except Exception as e:
             self.logger.error(f"Failed to initialize task planner: {e}")
+        
+        # Initialize MCP client for external tool integration
+        self.mcp_client = None
+        try:
+            self.mcp_client = get_mcp_client(config)
+            self.logger.info("MCP client initialized")
+        except Exception as e:
+            self.logger.error(f"Failed to initialize MCP client: {e}")
         
         # Initialize Ollama client (fallback)
         self.client = None
@@ -203,6 +212,14 @@ class OSAAutonomous:
         if self.task_planner:
             asyncio.create_task(self.task_planner.run_execution_loop())
             self.logger.info("🎯 Task planner activated")
+        
+        # Start MCP servers
+        if self.mcp_client:
+            try:
+                await self.mcp_client.start_all_servers()
+                self.logger.info("🔌 MCP servers started")
+            except Exception as e:
+                self.logger.error(f"Failed to start MCP servers: {e}")
         
         self.logger.info("✅ OSA Autonomous ready!")
     
@@ -694,6 +711,12 @@ Provide:
         else:
             status['task_planner'] = {'available': False}
         
+        # Add MCP client status
+        if self.mcp_client:
+            status['mcp'] = self.mcp_client.get_all_server_status()
+        else:
+            status['mcp'] = {'available': False}
+        
         return status
     
     async def shutdown(self):
@@ -707,6 +730,14 @@ Provide:
                 self.logger.info("✓ LangChain systems shut down")
             except Exception as e:
                 self.logger.error(f"Error shutting down LangChain: {e}")
+        
+        # Shutdown MCP servers
+        if self.mcp_client:
+            try:
+                await self.mcp_client.stop_all_servers()
+                self.logger.info("✓ MCP servers stopped")
+            except Exception as e:
+                self.logger.error(f"Error stopping MCP servers: {e}")
         
         # Could save state here if needed
         self.logger.info("✓ OSA Autonomous shutdown complete")
