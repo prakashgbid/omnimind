@@ -29,6 +29,7 @@ from core.logger import setup_logger
 from core.readiness import SystemReadiness
 from core.metrics import get_metrics_tracker
 from core.action_hooks import get_action_hooks, get_thinking_status
+from core.thinking_states import get_thinking_state, ThinkingAnimator
 
 # Terminal colors and styles
 class Colors:
@@ -167,11 +168,16 @@ class OSATerminal:
         print(f"\n\n{Colors.YELLOW}!{Colors.RESET} Use 'exit' or Ctrl+D to quit")
         # Don't exit, just return to prompt
     
-    def show_thinking(self, message: str = "Thinking..."):
-        """Show thinking indicator like Claude Code."""
-        print(f"\n{Colors.YELLOW}✻{Colors.RESET} {Colors.DIM}{message}{Colors.RESET}", end='', flush=True)
+    def show_thinking(self, message: str = "Thinking...", prompt: str = ""):
+        """Show thinking indicator like Claude Code with whimsical states."""
+        # Get a contextual thinking state
+        thinking_state, animation_type = get_thinking_state(prompt, contextual=True)
+        
+        # Display the whimsical thinking state
+        print(f"\n{Colors.YELLOW}✻{Colors.RESET} {Colors.DIM}{thinking_state}...{Colors.RESET}", end='', flush=True)
+        
         # Start thinking tracking
-        self.thinking_status.start_thinking(message)
+        self.thinking_status.start_thinking(thinking_state)
     
     def clear_thinking(self):
         """Clear the thinking line."""
@@ -538,8 +544,8 @@ class OSATerminal:
             model = self.config.get('model', 'llama3.2:3b')
             self.metrics.start_response(model=model, intent="analyzing")
             
-            # Show thinking
-            self.show_thinking("OSA is analyzing your request...")
+            # Show thinking with contextual state
+            self.show_thinking(prompt=prompt)
             
             # Process autonomously - OSA figures out what to do
             result = await self.osa.process_autonomously(prompt)
