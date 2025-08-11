@@ -19,8 +19,9 @@ from pathlib import Path
 import logging
 
 # Core OSA components
-from osa_enhanced import OSAEnhanced, create_enhanced_osa
-from osa_continuous_thinking import enhance_osa_with_thinking, ContinuousThinkingEngine
+from .modules.thinking import ContinuousThinkingEngine
+from .modules.learning import ContinuousLearningSystem
+from .logger import setup_logger, OSALogger
 
 
 class OSACompleteFinal(OSAEnhanced):

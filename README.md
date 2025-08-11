@@ -1,165 +1,177 @@
-# 🧠 OSA (OmniMind Super Agent)
+# OmniMind - Human-like Thinking AI System
 
-<div align="center">
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Python 3.9+](https://img.shields.io/badge/python-3.9+-blue.svg)](https://www.python.org/downloads/)
+[![CI/CD](https://github.com/prakashgbid/omnimind/actions/workflows/quality-gates.yml/badge.svg)](https://github.com/prakashgbid/omnimind/actions)
 
-![OSA Banner](https://img.shields.io/badge/OSA-Human--like%20AI-purple?style=for-the-badge&logo=brain&logoColor=white)
-![Python](https://img.shields.io/badge/Python-3.9%2B-blue?style=for-the-badge&logo=python&logoColor=white)
-![License](https://img.shields.io/badge/License-MIT-green?style=for-the-badge)
-![Tests](https://github.com/prakashgbid/omnimind/workflows/Tests/badge.svg)
-![Release](https://img.shields.io/github/v/release/prakashgbid/omnimind?style=for-the-badge)
-![Stars](https://img.shields.io/github/stars/prakashgbid/omnimind?style=for-the-badge)
+OmniMind is an advanced AI system that mimics human cognitive processes through continuous thinking, learning, and reasoning capabilities. It provides a framework for building intelligent applications with human-like problem-solving abilities.
 
-**The Ultimate Autonomous AI System with Human-like Thinking**
+## 🌟 Features
 
-[Features](#-features) • [Quick Start](#-quick-start) • [Demo](#-demo) • [Web Monitor](#-web-monitoring) • [Documentation](#-documentation) • [Contributing](#-contributing)
-
-</div>
-
----
-
-## 🎬 Demo
-
-<details>
-<summary>Click to see OSA in action</summary>
-
-```
-╔════════════════════════════════════════════════════════════╗
-║                    OSA - OmniMind Super Agent              ║
-╠════════════════════════════════════════════════════════════╣
-║  🧠 THINKING (10,247 simultaneous thoughts)               ║
-║                                                            ║
-║  ├─ Market Analysis (depth: 3)                            ║
-║  ├─ Technical Architecture (depth: 5)                     ║
-║  └─ User Psychology (depth: 4)                           ║
-║                                                            ║
-║  ✅ TASK COMPLETED: 15,342 thoughts • 72% time saved     ║
-╚════════════════════════════════════════════════════════════╝
-```
-
-See the [full demo](docs/demo.md) or run `python demo_animation.py` to watch OSA think!
-
-</details>
-
-## 🚀 Overview
-
-OSA (OmniMind Super Agent) is a revolutionary autonomous AI system that thinks and works like a human. It combines continuous deep thinking, adaptive problem-solving, leadership capabilities, and self-improvement into a single intelligent system that can accomplish any task end-to-end without human intervention.
-
-### 💡 What Makes OSA Different?
-
-Unlike traditional AI agents that follow linear execution paths, OSA:
-- **Thinks continuously** about thousands of aspects simultaneously
-- **Never gets stuck** - always generates alternative solutions
-- **Learns from experience** and improves with each task
-- **Reviews its own architecture** daily for self-improvement
-- **Works autonomously** without requiring human supervision
-
-## ⚡ Features
-
-### 🧠 Human-like Thinking Engine
-- **10,000+ simultaneous thoughts** maintained in working memory
-- **Nested reasoning chains** up to 10 levels deep
-- **Multi-context awareness** with seamless context switching
-- **Thought connections** discovery in real-time
-- **5 problem-solving patterns**: Divide & conquer, reverse engineering, lateral thinking, first principles, analogical reasoning
-
-### 🔄 Adaptive Problem-Solving
-- **Blocker detection** identifies obstacles instantly
-- **Alternative path generation** creates 3+ solutions per blocker
-- **Never fails** - always finds another way
-- **Confidence scoring** for each reasoning path
-
-### 📚 Continuous Learning
-- **Pattern recognition** identifies repeated tasks
-- **Solution caching** stores successful approaches
-- **70% time savings** on similar tasks
-- **Internal debates** for optimal decision making
-
-### 🔍 Self-Improvement
-- **Daily architecture review** at 2 AM
-- **Tool research** finds best existing solutions
-- **Automatic implementation** of improvements
-- **Performance monitoring** and optimization
-
-## 📦 Installation
-
-```bash
-# Clone the repository
-git clone https://github.com/prakashgbid/omnimind.git
-cd omnimind
-
-# Create virtual environment
-python -m venv venv
-source venv/bin/activate  # On Windows: venv\Scripts\activate
-
-# Install dependencies
-pip install -r requirements.txt
-
-# Optional: Install Ollama for local LLMs
-curl -fsSL https://ollama.ai/install.sh | sh
-ollama pull llama3.2:3b
-```
+- **Continuous Thinking Engine**: Background cognitive processing that generates thoughts, connections, and insights
+- **Adaptive Learning System**: Learns from interactions and improves over time
+- **Multi-Model Support**: Works with Ollama (local), OpenAI, and other LLM providers
+- **Modular Architecture**: Clean, extensible design for easy customization
+- **Comprehensive Testing**: 200+ tests covering unit, integration, security, and performance
+- **Production Ready**: Pre-commit hooks, CI/CD pipeline, and quality gates
 
 ## 🚀 Quick Start
 
-```python
-from osa_complete_final import create_complete_osa
+### Prerequisites
 
-# Initialize OSA
-osa = await create_complete_osa()
+- Python 3.9 or higher
+- Ollama (for local models)
+- Git
 
-# Give it any task
-result = await osa.think_and_accomplish(
-    "Build a viral social media app with AI features"
-)
+### Installation
+
+1. Clone the repository:
+```bash
+git clone https://github.com/prakashgbid/omnimind.git
+cd omnimind
 ```
 
-### Interactive Mode
+2. Install dependencies:
+```bash
+pip install -r requirements.txt
+```
+
+3. Set up environment:
+```bash
+cp .env.example .env
+# Edit .env with your configuration
+```
+
+4. Run setup script:
+```bash
+./setup_local.sh
+```
+
+### Usage
+
+Run OmniMind in interactive mode:
+```bash
+python omnimind.py
+```
+
+Process a specific task:
+```bash
+python omnimind.py "Create a web scraper in Python"
+```
+
+With options:
+```bash
+python omnimind.py --model llama3.2:3b --verbose "Explain quantum computing"
+```
+
+## 📁 Project Structure
+
+```
+omnimind/
+├── src/                  # Source code
+│   ├── core/            # Core OSA modules
+│   │   ├── osa.py       # Main OSA implementation
+│   │   ├── logger.py    # Logging utilities
+│   │   └── modules/     # Core modules
+│   │       ├── thinking.py   # Thinking engine
+│   │       ├── learning.py   # Learning system
+│   │       └── architecture_reviewer.py
+│   ├── providers/       # LLM providers
+│   ├── agents/          # Agent system
+│   └── utils/           # Utilities
+├── tests/               # Test suite
+│   ├── unit/           # Unit tests
+│   ├── integration/    # Integration tests
+│   ├── security/       # Security tests
+│   ├── performance/    # Performance tests
+│   └── regression/     # Regression tests
+├── tools/              # Development tools
+├── docs/               # Documentation
+├── web/                # Web interface
+└── omnimind.py         # Main entry point
+```
+
+## 🧪 Testing
+
+Run all tests:
+```bash
+pytest tests/
+```
+
+Run specific test categories:
+```bash
+pytest tests/unit/          # Unit tests
+pytest tests/security/      # Security tests
+pytest tests/performance/   # Performance tests
+```
+
+Run with coverage:
+```bash
+pytest --cov=src tests/
+```
+
+## 🔧 Development
+
+### Setup Development Environment
 
 ```bash
-python run_complete_osa.py
+# Install development dependencies
+pip install -e ".[dev]"
+
+# Install pre-commit hooks
+pre-commit install
+
+# Run quality checks
+python tools/quality_checks.py
 ```
 
-## 📊 Web Monitoring
+### Code Quality
 
-Real-time monitoring of OSA's thinking process:
-
-```bash
-# Start the WebSocket server
-python src/osa_logger.py
-
-# Open in browser
-open web/index.html
-```
-
-Features:
-- Real-time activity logs
-- Thought graph visualization
-- Live metrics dashboard
-- Session management
-- Export capabilities
-
-## ⚡ Performance
-
-| Metric | Performance |
-|--------|------------|
-| Thoughts per second | 20-50 |
-| Pattern recognition | 92% accuracy |
-| Time savings | 70% on repeated tasks |
-| Alternative generation | <1 second |
-| Learning rate | 10-15% per task |
+The project uses:
+- **Black** for code formatting
+- **Flake8** for linting
+- **MyPy** for type checking
+- **Pytest** for testing
+- **Pre-commit** hooks for quality gates
 
 ## 🤝 Contributing
 
-See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
+Please see [docs/CONTRIBUTING.md](docs/CONTRIBUTING.md) for contribution guidelines.
 
 ## 📄 License
 
-MIT License - see [LICENSE](LICENSE) file.
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+## 🔗 Links
+
+- [GitHub Repository](https://github.com/prakashgbid/omnimind)
+- [Documentation](https://prakashgbid.github.io/omnimind/)
+- [Wiki](https://github.com/prakashgbid/omnimind/wiki)
+
+## 💡 Core Concepts
+
+OmniMind implements several key cognitive concepts:
+
+1. **Continuous Thinking**: Background processing that generates thoughts and connections
+2. **Pattern Recognition**: Identifies and learns from patterns in data and interactions
+3. **Contextual Memory**: Maintains context across conversations and tasks
+4. **Adaptive Learning**: Improves performance based on feedback and experience
+5. **Multi-Model Reasoning**: Combines insights from multiple AI models
+
+## ⚡ Performance
+
+- Supports concurrent task processing
+- Memory-efficient with automatic cleanup
+- Optimized for both local and cloud deployments
+- Benchmarked for speed and resource usage
+
+## 🛡️ Security
+
+- Input validation and sanitization
+- Protection against injection attacks
+- Secure handling of API keys and credentials
+- Regular security audits via automated testing
 
 ---
 
-<div align="center">
-
-**OSA - Thinking at the speed of thought, working at the speed of light** 🚀
-
-</div>
+Built with passion for advancing AI capabilities 🚀
