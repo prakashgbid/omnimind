@@ -25,6 +25,7 @@ from .langchain_engine import get_langchain_engine, LANGCHAIN_AVAILABLE
 from .self_learning import get_learning_system, LearningDomain, FeedbackType
 from .task_planner import get_task_planner, TaskType, TaskPriority
 from .mcp_client import get_mcp_client
+from .code_generator import get_code_generator, CodeGenerationRequest, CodeType, ProgrammingLanguage
 
 
 class IntentType(Enum):
@@ -89,6 +90,14 @@ class OSAAutonomous:
             self.logger.info("MCP client initialized")
         except Exception as e:
             self.logger.error(f"Failed to initialize MCP client: {e}")
+        
+        # Initialize code generator for autonomous code creation
+        self.code_generator = None
+        try:
+            self.code_generator = get_code_generator(self.langchain_engine, config)
+            self.logger.info("Code generation system initialized")
+        except Exception as e:
+            self.logger.error(f"Failed to initialize code generator: {e}")
         
         # Initialize Ollama client (fallback)
         self.client = None
@@ -445,6 +454,70 @@ class OSAAutonomous:
         """Handle code generation requests."""
         self.logger.debug("📝 Generating code...")
         
+        # Use advanced code generator if available
+        if self.code_generator:
+            try:
+                # Determine language from input
+                language = ProgrammingLanguage.PYTHON  # Default
+                if any(lang in user_input.lower() for lang in ['javascript', 'js']):
+                    language = ProgrammingLanguage.JAVASCRIPT
+                elif 'typescript' in user_input.lower():
+                    language = ProgrammingLanguage.TYPESCRIPT
+                elif 'go' in user_input.lower() or 'golang' in user_input.lower():
+                    language = ProgrammingLanguage.GO
+                
+                # Determine code type
+                code_type = CodeType.FUNCTION  # Default
+                if 'class' in user_input.lower():
+                    code_type = CodeType.CLASS
+                elif 'module' in user_input.lower():
+                    code_type = CodeType.MODULE
+                elif 'script' in user_input.lower():
+                    code_type = CodeType.SCRIPT
+                elif 'test' in user_input.lower():
+                    code_type = CodeType.TEST
+                
+                # Create generation request
+                request = CodeGenerationRequest(
+                    description=user_input,
+                    code_type=code_type,
+                    language=language,
+                    requirements=["Clean code", "Error handling", "Documentation"],
+                    constraints=[]
+                )
+                
+                # Generate code
+                result = await self.code_generator.generate_code(request)
+                
+                # Format response
+                response_parts = [
+                    f"Generated {result.language.value} code:",
+                    f"```{result.language.value}",
+                    result.code,
+                    "```"
+                ]
+                
+                if result.tests:
+                    response_parts.extend([
+                        "\nTests:",
+                        f"```{result.language.value}",
+                        result.tests,
+                        "```"
+                    ])
+                
+                if result.documentation:
+                    response_parts.append(f"\nDocumentation:\n{result.documentation}")
+                
+                if result.quality_score > 0:
+                    response_parts.append(f"\nCode Quality Score: {result.quality_score:.0%}")
+                
+                return "\n".join(response_parts)
+                
+            except Exception as e:
+                self.logger.error(f"Code generation failed: {e}")
+                # Fallback to basic generation
+        
+        # Fallback to basic prompt-based generation
         prompt = f"""As an expert programmer, generate clean, efficient code for:
 {user_input}
 
@@ -716,6 +789,16 @@ Provide:
             status['mcp'] = self.mcp_client.get_all_server_status()
         else:
             status['mcp'] = {'available': False}
+        
+        # Add code generator status
+        if self.code_generator:
+            status['code_generator'] = {
+                'available': True,
+                'templates': len(self.code_generator.templates),
+                'modifications': len(self.code_generator.modification_history)
+            }
+        else:
+            status['code_generator'] = {'available': False}
         
         return status
     
