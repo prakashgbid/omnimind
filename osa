@@ -26,6 +26,8 @@ sys.path.insert(0, str(SCRIPT_DIR / "src"))
 
 from core.osa_autonomous import OSAAutonomous, IntentType
 from core.logger import setup_logger
+from core.readiness import SystemReadiness
+from core.metrics import get_metrics_tracker
 
 # Terminal colors and styles
 class Colors:
@@ -71,6 +73,8 @@ class OSATerminal:
         self.command_count = 0
         self.current_project = Path.cwd()
         self.terminal_width = shutil.get_terminal_size().columns
+        self.metrics = get_metrics_tracker()
+        self.readiness_checker = SystemReadiness(verbose=False)
         
         # Setup signal handlers
         signal.signal(signal.SIGINT, self.handle_interrupt)
@@ -213,6 +217,34 @@ class OSATerminal:
         """Show error message."""
         print(f"\n{Colors.RED}✗{Colors.RESET} {Colors.BOLD}Error:{Colors.RESET} {error}")
     
+    def show_status_bar(self):
+        """Show Claude Code-style status bar with metrics."""
+        metrics = self.metrics.current_response
+        
+        # Format status bar
+        time_str = f"{metrics.response_time:.1f}s" if metrics.response_time else "--"
+        token_str = f"{metrics.tokens_total}" if metrics.tokens_total else "--"
+        model_str = metrics.model_used[:10] if metrics.model_used else "unknown"
+        conf_str = f"{metrics.confidence:.0%}" if metrics.confidence else "--"
+        context_str = f"{metrics.context_usage:.0%}" if metrics.context_usage else "--"
+        cache_str = "Hit" if metrics.cache_hit else "Miss"
+        
+        # Create status bar
+        status_line = (f"⚡ {time_str} | "
+                      f"🪙 {token_str} | "
+                      f"🤖 {model_str} | "
+                      f"💭 {conf_str} | "
+                      f"🧠 {context_str} | "
+                      f"💾 {cache_str}")
+        
+        # Draw the status bar box
+        width = min(len(status_line) + 4, self.terminal_width - 2)
+        print()
+        print(f"{Colors.DIM}┌{'─' * (width - 2)}┐{Colors.RESET}")
+        print(f"{Colors.DIM}│{Colors.RESET} {status_line} {Colors.DIM}│{Colors.RESET}")
+        print(f"{Colors.DIM}└{'─' * (width - 2)}┘{Colors.RESET}")
+        print()
+    
     
     def clear_screen(self):
         """Clear the terminal screen."""
@@ -227,7 +259,18 @@ class OSATerminal:
     
     async def initialize_osa(self):
         """Initialize the OSA instance."""
-        print(f"{Colors.DIM}Initializing OSA systems...{Colors.RESET}")
+        print(f"{Colors.DIM}Initializing OSA systems...{Colors.RESET}\n")
+        
+        # Run system readiness checks
+        all_ready, checks = await self.readiness_checker.run_all_checks()
+        
+        if not all_ready:
+            failed_checks = [c for c in checks if c.status.value == "❌"]
+            if failed_checks:
+                print(f"\n{Colors.RED}Warning:{Colors.RESET} Some systems are not ready:")
+                for check in failed_checks:
+                    print(f"  {check.status.value} {check.name}: {check.message}")
+                print()
         
         try:
             # Suppress debug output
@@ -389,21 +432,60 @@ class OSATerminal:
         if self.osa:
             status = self.osa.get_status()
             
-            print(f"\n{Colors.CYAN}📊 OSA Status{Colors.RESET}")
-            print(f"{Colors.DIM}{'─' * 40}{Colors.RESET}")
+            # Get metrics summary
+            session_stats = self.metrics.get_session_stats()
+            system_metrics = self.metrics.update_system_metrics()
             
+            print(f"\n{Colors.CYAN}📊 OSA Status{Colors.RESET}")
+            print(f"{Colors.DIM}{'=' * 60}{Colors.RESET}")
+            
+            # Basic info
+            print(f"{Colors.BOLD}System Information:{Colors.RESET}")
             items = [
                 ("Model", status['model']),
-                ("Conversations", str(status.get('conversations', 0))),
-                ("Learning Entries", str(status.get('learning_entries', 0))),
-                ("Last Intent", status.get('last_intent', 'None')),
-                ("Session Duration", str(datetime.now() - self.session_start).split('.')[0]),
-                ("Ollama Connected", "✓" if status['ollama_connected'] else "✗")
+                ("Ollama Connected", "✅" if status['ollama_connected'] else "❌"),
+                ("Session Duration", f"{session_stats['session_duration']:.0f}s"),
+                ("Total Responses", str(session_stats['total_responses'])),
+                ("Total Tokens", str(session_stats['total_tokens'])),
             ]
             
             for key, value in items:
-                print(f"  {Colors.BOLD}{key:20}{Colors.RESET} {Colors.GREEN}{value}{Colors.RESET}")
-            print()
+                print(f"  {key:20} {Colors.GREEN}{value}{Colors.RESET}")
+            
+            # Performance metrics
+            print(f"\n{Colors.BOLD}Performance Metrics:{Colors.RESET}")
+            perf_items = [
+                ("Avg Response Time", f"{session_stats['avg_response_time']:.2f}s"),
+                ("Cache Hit Rate", f"{session_stats['cache_hit_rate']:.0%}"),
+                ("Error Rate", f"{session_stats['error_rate']:.0%}"),
+            ]
+            
+            for key, value in perf_items:
+                print(f"  {key:20} {Colors.CYAN}{value}{Colors.RESET}")
+            
+            # Learning progress
+            if session_stats['skills_learned'] or session_stats['knowledge_entries']:
+                print(f"\n{Colors.BOLD}Learning Progress:{Colors.RESET}")
+                print(f"  Skills Learned      {Colors.YELLOW}{session_stats['skills_learned']}{Colors.RESET}")
+                print(f"  Knowledge Entries   {Colors.YELLOW}{session_stats['knowledge_entries']}{Colors.RESET}")
+                print(f"  Patterns Found      {Colors.YELLOW}{session_stats['patterns_found']}{Colors.RESET}")
+            
+            # System resources
+            print(f"\n{Colors.BOLD}System Resources:{Colors.RESET}")
+            print(f"  CPU Usage           {self._format_resource(system_metrics.cpu_percent, 80, 90)}%")
+            print(f"  Memory Usage        {self._format_resource(system_metrics.memory_percent, 85, 95)}% ({system_metrics.memory_used_gb:.1f}GB)")
+            print(f"  Active Operations   {Colors.BLUE}{system_metrics.active_threads}{Colors.RESET}")
+            
+            print(f"{Colors.DIM}{'=' * 60}{Colors.RESET}\n")
+    
+    def _format_resource(self, value: float, warning_threshold: float, critical_threshold: float) -> str:
+        """Format resource value with color based on thresholds."""
+        if value >= critical_threshold:
+            return f"{Colors.RED}{value:.0f}{Colors.RESET}"
+        elif value >= warning_threshold:
+            return f"{Colors.YELLOW}{value:.0f}{Colors.RESET}"
+        else:
+            return f"{Colors.GREEN}{value:.0f}{Colors.RESET}"
     
     def save_session(self):
         """Save current session."""
@@ -443,6 +525,10 @@ class OSATerminal:
                 await self.process_command(prompt)
                 return
             
+            # Start metrics tracking
+            model = self.config.get('model', 'llama3.2:3b')
+            self.metrics.start_response(model=model, intent="analyzing")
+            
             # Show thinking
             self.show_thinking("OSA is analyzing your request...")
             
@@ -451,6 +537,19 @@ class OSATerminal:
             
             # Clear thinking
             self.clear_thinking()
+            
+            # End metrics tracking (estimate tokens for now)
+            tokens_in = len(prompt.split()) * 2  # Rough estimate
+            tokens_out = len(result.split()) * 2  # Rough estimate
+            confidence = 0.85  # Default confidence
+            cache_hit = False  # Will be updated when cache is implemented
+            
+            self.metrics.end_response(
+                tokens_in=tokens_in,
+                tokens_out=tokens_out,
+                confidence=confidence,
+                cache_hit=cache_hit
+            )
             
             # Parse result to extract intent
             lines = result.split('\n\n', 1)
@@ -476,6 +575,9 @@ class OSATerminal:
                 # Simple response
                 self.show_tool_output(result)
             
+            # Show status bar with metrics
+            self.show_status_bar()
+            
             # Save to history
             if session_history:
                 session_history[-1]["response"] = result[:500]  # Save first 500 chars
@@ -483,6 +585,9 @@ class OSATerminal:
         except Exception as e:
             self.clear_thinking()
             self.show_error(str(e))
+            # End metrics tracking on error
+            self.metrics.current_response.error = str(e)
+            self.metrics.end_response()
     
     def get_intent_emoji(self, intent: IntentType) -> str:
         """Get emoji for intent type."""

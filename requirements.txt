@@ -3,7 +3,7 @@ asyncio-mqtt==0.16.2
 aiohttp==3.9.1
 websockets==12.0
 pexpect==4.9.0
-psutil==5.9.6
+psutil==7.0.0
 
 # AI/ML
 openai==1.3.0
