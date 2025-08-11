@@ -22,6 +22,8 @@ except ImportError:
 
 from .logger import setup_logger
 from .langchain_engine import get_langchain_engine, LANGCHAIN_AVAILABLE
+from .self_learning import get_learning_system, LearningDomain, FeedbackType
+from .task_planner import get_task_planner, TaskType, TaskPriority
 
 
 class IntentType(Enum):
@@ -62,6 +64,22 @@ class OSAAutonomous:
                 self.logger.info("LangChain intelligence engine initialized")
             except Exception as e:
                 self.logger.error(f"Failed to initialize LangChain: {e}")
+        
+        # Initialize self-learning system
+        self.learning_system = None
+        try:
+            self.learning_system = get_learning_system(config)
+            self.logger.info("Self-learning system initialized")
+        except Exception as e:
+            self.logger.error(f"Failed to initialize learning system: {e}")
+        
+        # Initialize task planner
+        self.task_planner = None
+        try:
+            self.task_planner = get_task_planner(self.langchain_engine, config)
+            self.logger.info("Task planning system initialized")
+        except Exception as e:
+            self.logger.error(f"Failed to initialize task planner: {e}")
         
         # Initialize Ollama client (fallback)
         self.client = None
@@ -176,6 +194,16 @@ class OSAAutonomous:
         # Start background intelligence
         asyncio.create_task(self._background_intelligence())
         
+        # Start continuous learning loop
+        if self.learning_system:
+            asyncio.create_task(self.learning_system.continuous_learning_loop())
+            self.logger.info("📚 Continuous learning activated")
+        
+        # Start task execution loop
+        if self.task_planner:
+            asyncio.create_task(self.task_planner.run_execution_loop())
+            self.logger.info("🎯 Task planner activated")
+        
         self.logger.info("✅ OSA Autonomous ready!")
     
     def detect_intent(self, user_input: str) -> Tuple[IntentType, float]:
@@ -237,6 +265,61 @@ class OSAAutonomous:
         }
         return intent_mapping.get(intent, "general")
     
+    def _map_intent_to_learning_domain(self, intent: IntentType) -> LearningDomain:
+        """Map OSA intent to learning domain"""
+        mapping = {
+            IntentType.CODE_GENERATION: LearningDomain.CODING,
+            IntentType.CODE_DEBUG: LearningDomain.CODING,
+            IntentType.CODE_REFACTOR: LearningDomain.CODING,
+            IntentType.DEEP_THINKING: LearningDomain.PROBLEM_SOLVING,
+            IntentType.PROBLEM_SOLVING: LearningDomain.PROBLEM_SOLVING,
+            IntentType.LEARNING: LearningDomain.KNOWLEDGE,
+            IntentType.EXPLANATION: LearningDomain.KNOWLEDGE,
+            IntentType.CREATIVE: LearningDomain.CONVERSATION,
+            IntentType.ANALYSIS: LearningDomain.PROBLEM_SOLVING,
+            IntentType.GENERAL_CHAT: LearningDomain.CONVERSATION,
+            IntentType.SYSTEM_TASK: LearningDomain.BEHAVIOR
+        }
+        return mapping.get(intent, LearningDomain.CONVERSATION)
+    
+    def _map_intent_to_task_type_planner(self, intent: IntentType) -> TaskType:
+        """Map OSA intent to task planner type"""
+        mapping = {
+            IntentType.CODE_GENERATION: TaskType.CODING,
+            IntentType.CODE_DEBUG: TaskType.CODING,
+            IntentType.CODE_REFACTOR: TaskType.CODING,
+            IntentType.DEEP_THINKING: TaskType.ANALYSIS,
+            IntentType.PROBLEM_SOLVING: TaskType.ANALYSIS,
+            IntentType.LEARNING: TaskType.RESEARCH,
+            IntentType.EXPLANATION: TaskType.COMMUNICATION,
+            IntentType.CREATIVE: TaskType.CREATIVE,
+            IntentType.ANALYSIS: TaskType.ANALYSIS,
+            IntentType.GENERAL_CHAT: TaskType.COMMUNICATION,
+            IntentType.SYSTEM_TASK: TaskType.SYSTEM
+        }
+        return mapping.get(intent, TaskType.ANALYSIS)
+    
+    async def _needs_task_decomposition(self, user_input: str, intent: IntentType) -> bool:
+        """Determine if input requires task decomposition"""
+        # Complex task indicators
+        complex_keywords = [
+            "build", "create", "develop", "implement", "design",
+            "analyze", "research", "investigate", "compare",
+            "multiple", "several", "various", "complete", "entire"
+        ]
+        
+        # Check for complexity indicators
+        input_lower = user_input.lower()
+        has_complex_keyword = any(keyword in input_lower for keyword in complex_keywords)
+        is_long_input = len(user_input) > 200
+        is_complex_intent = intent in [
+            IntentType.CODE_GENERATION,
+            IntentType.PROBLEM_SOLVING,
+            IntentType.ANALYSIS
+        ]
+        
+        return (has_complex_keyword or is_long_input) and is_complex_intent
+    
     async def process_autonomously(self, user_input: str) -> str:
         """
         Process user input completely autonomously.
@@ -259,6 +342,29 @@ class OSAAutonomous:
             "timestamp": datetime.now().isoformat()
         })
         
+        # Check if task decomposition is needed
+        if await self._needs_task_decomposition(user_input, intent):
+            # Create and execute a complex task
+            task = await self.task_planner.create_task(
+                description=user_input,
+                task_type=self._map_intent_to_task_type_planner(intent),
+                priority=TaskPriority.HIGH,
+                context={"intent": intent.value}
+            )
+            
+            # Return task creation confirmation
+            return f"{status_msg}\n\n🎯 Complex task created with {len(task.steps)} steps. Task ID: {task.task_id}\n\nI'll work on this autonomously and update you on progress."
+        
+        # Apply learning recommendations if available
+        learning_applied = False
+        if self.learning_system:
+            learning_domain = self._map_intent_to_learning_domain(intent)
+            recommendations = await self.learning_system.apply_learning(learning_domain, user_input)
+            
+            if recommendations["confidence"] > 0.7:
+                learning_applied = True
+                self.logger.info(f"Applied learning with confidence: {recommendations['confidence']}")
+        
         # Use LangChain for advanced processing if available
         if self.langchain_engine:
             try:
@@ -271,6 +377,17 @@ class OSAAutonomous:
                 if "success" in metadata:
                     self.conversation_context[-1]["langchain_used"] = True
                     self.conversation_context[-1]["model_used"] = metadata.get("model_used", "unknown")
+                    self.conversation_context[-1]["learning_applied"] = learning_applied
+                
+                # Record interaction for learning
+                if self.learning_system:
+                    learning_domain = self._map_intent_to_learning_domain(intent)
+                    await self.learning_system.record_interaction(
+                        domain=learning_domain,
+                        input_context=user_input,
+                        output_response=response,
+                        feedback=(FeedbackType.IMPLICIT, 0.7)  # Default positive feedback
+                    )
                 
                 return f"{status_msg}\n\n{response}"
                 
@@ -558,6 +675,24 @@ Provide:
             status['langchain'] = langchain_status
         else:
             status['langchain'] = {'available': False}
+        
+        # Add learning system status
+        if self.learning_system:
+            status['learning'] = self.learning_system.get_learning_insights()
+        else:
+            status['learning'] = {'available': False}
+        
+        # Add task planner status
+        if self.task_planner:
+            active_tasks = len(self.task_planner.running_tasks)
+            pending_tasks = self.task_planner.execution_queue.qsize()
+            status['task_planner'] = {
+                'active_tasks': active_tasks,
+                'pending_tasks': pending_tasks,
+                'total_tasks': len(self.task_planner.tasks)
+            }
+        else:
+            status['task_planner'] = {'available': False}
         
         return status
     
