@@ -27,6 +27,7 @@ qdrant-client==1.7.0
 
 # Embeddings & Processing
 transformers==4.35.0
+sentence-transformers==2.3.1
 
 # Database
 sqlalchemy==2.0.23

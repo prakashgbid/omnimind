@@ -27,6 +27,7 @@ from .task_planner import get_task_planner, TaskType, TaskPriority
 from .mcp_client import get_mcp_client
 from .code_generator import get_code_generator, CodeGenerationRequest, CodeType, ProgrammingLanguage
 from .agent_orchestrator import get_agent_orchestrator, AgentType, CollaborationMode
+from .memory_persistence import get_persistent_memory, MemoryType, MemoryPriority
 
 
 class IntentType(Enum):
@@ -108,6 +109,21 @@ class OSAAutonomous:
         except Exception as e:
             self.logger.error(f"Failed to initialize agent orchestrator: {e}")
         
+        # Initialize persistent memory system
+        self.persistent_memory = None
+        try:
+            self.persistent_memory = get_persistent_memory(config)
+            self.logger.info("Persistent memory system initialized")
+            
+            # Load critical context from previous sessions
+            context = self.persistent_memory.get_context_for_session()
+            if context['core_vision']:
+                self.logger.info(f"Loaded {len(context['core_vision'])} core vision memories")
+            if context['skills']:
+                self.logger.info(f"Loaded {len(context['skills'])} learned skills")
+        except Exception as e:
+            self.logger.error(f"Failed to initialize persistent memory: {e}")
+        
         # Initialize Ollama client (fallback)
         self.client = None
         if ollama:
@@ -185,6 +201,12 @@ class OSAAutonomous:
     async def initialize(self):
         """Initialize OSA systems."""
         self.logger.info("🚀 Starting OSA Autonomous systems...")
+        
+        # Load critical context from persistent memory
+        if self.persistent_memory:
+            critical_context = self.persistent_memory.export_critical_context()
+            self.logger.info("Loaded persistent context from previous sessions")
+            self.logger.debug(critical_context)
         
         # Initialize LangChain intelligence systems
         if self.langchain_engine:
@@ -410,6 +432,15 @@ class OSAAutonomous:
             "intent": intent.value,
             "timestamp": datetime.now().isoformat()
         })
+        
+        # Store in persistent memory
+        if self.persistent_memory:
+            self.persistent_memory.store_memory(
+                content=f"User Query: {user_input}\nIntent: {intent.value}",
+                memory_type=MemoryType.CONTEXT,
+                priority=MemoryPriority.MEDIUM,
+                metadata={"intent": intent.value, "confidence": confidence}
+            )
         
         # Check if we should use multi-agent orchestration
         if await self._should_use_multi_agent(user_input, intent):
@@ -782,9 +813,24 @@ Provide:
     
     async def _learn_from_interaction(self, user_input: str, intent: IntentType, response: str):
         """Learn from each interaction to improve future responses."""
-        # This is where OSA would update its patterns and improve
-        # For now, just log the learning
         self.logger.debug(f"📚 Learning from {intent.value} interaction")
+        
+        # Store learning in persistent memory
+        if self.persistent_memory:
+            learning_content = f"""Pattern: {intent.value}
+Input: {user_input[:200]}
+Response Quality: Good
+Lesson: Successfully handled {intent.value} request"""
+            
+            self.persistent_memory.store_memory(
+                content=learning_content,
+                memory_type=MemoryType.LEARNING,
+                priority=MemoryPriority.MEDIUM,
+                metadata={
+                    "intent": intent.value,
+                    "success": True
+                }
+            )
     
     async def _background_intelligence(self):
         """Background process for continuous intelligence."""
