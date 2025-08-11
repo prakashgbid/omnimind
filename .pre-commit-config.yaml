@@ -167,3 +167,49 @@ repos:
     hooks:
       - id: sqlfluff-lint
       - id: sqlfluff-fix
+
+  # Testing hooks
+  - repo: local
+    hooks:
+      # Run unit tests
+      - id: pytest-unit
+        name: Run unit tests
+        entry: pytest tests/unit/ -v --tb=short
+        language: system
+        types: [python]
+        pass_filenames: false
+        stages: [commit]
+        
+      # Run security tests  
+      - id: pytest-security
+        name: Run security tests
+        entry: pytest tests/security/ -v --tb=short
+        language: system
+        types: [python]
+        pass_filenames: false
+        stages: [commit]
+        
+      # Run custom quality checks
+      - id: custom-quality-checks
+        name: Run custom quality checks
+        entry: python tools/quality_checks.py
+        language: system
+        types: [python]
+        pass_filenames: false
+        stages: [commit]
+        
+      # Run dependency security check
+      - id: dependency-security-check
+        name: Check dependencies for vulnerabilities
+        entry: python tools/dependency_check.py
+        language: system
+        pass_filenames: false
+        stages: [push]
+        
+      # Performance regression check (for critical files)
+      - id: performance-check
+        name: Check for performance regressions
+        entry: pytest tests/performance/test_thinking_performance.py::TestRegressionPerformance -v
+        language: system
+        files: 'src/.*continuous.*\.py$'
+        stages: [push]

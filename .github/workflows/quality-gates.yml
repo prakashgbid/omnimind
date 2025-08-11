@@ -136,19 +136,32 @@ jobs:
       run: |
         python -m pip install --upgrade pip
         pip install -r requirements.txt
-        pip install pytest pytest-cov pytest-asyncio pytest-mock pytest-xdist
+        pip install pytest pytest-cov pytest-asyncio pytest-mock pytest-xdist pytest-benchmark pytest-timeout
     
-    - name: Run unit tests
+    - name: Run unit tests with coverage
       run: |
-        pytest tests/unit/ -v --cov=src --cov-report=xml --cov-report=html --cov-fail-under=70
+        pytest tests/unit/ -v --cov=src --cov-report=xml --cov-report=html --cov-fail-under=80 --timeout=300
+      timeout-minutes: 10
     
     - name: Run integration tests
       run: |
-        pytest tests/integration/ -v --maxfail=5
+        pytest tests/integration/ -v --maxfail=5 --timeout=600
       env:
         # Mock API keys for testing
         ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY || 'test-key' }}
         OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY || 'test-key' }}
+      timeout-minutes: 15
+      continue-on-error: true
+    
+    - name: Run security tests
+      run: |
+        pytest tests/security/ -v --timeout=300
+      timeout-minutes: 8
+    
+    - name: Run performance regression tests
+      run: |
+        pytest tests/performance/ -v -m "performance and not slow" --timeout=600
+      timeout-minutes: 12
       continue-on-error: true
     
     - name: Upload coverage reports
@@ -156,8 +169,18 @@ jobs:
       with:
         file: ./coverage.xml
         flags: unittests
-        name: codecov-umbrella
+        name: codecov-umbrella-${{ matrix.python-version }}
         fail_ci_if_error: false
+    
+    - name: Upload test results
+      uses: actions/upload-artifact@v3
+      if: always()
+      with:
+        name: test-results-${{ matrix.python-version }}
+        path: |
+          htmlcov/
+          .coverage
+          pytest.xml
 
   # Performance benchmarking
   performance:
