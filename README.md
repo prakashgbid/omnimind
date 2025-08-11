@@ -1,4 +1,4 @@
-# >� OSA (OmniMind Super Agent)
+# 🧠 OSA (OmniMind Super Agent)
 
 <div align="center">
 
@@ -11,17 +11,40 @@
 
 **The Ultimate Autonomous AI System with Human-like Thinking**
 
-[Features](#-features) " [Quick Start](#-quick-start) " [Web Monitor](#-web-monitoring) " [Documentation](#-documentation) " [Contributing](#-contributing)
+[Features](#-features) • [Quick Start](#-quick-start) • [Demo](#-demo) • [Web Monitor](#-web-monitoring) • [Documentation](#-documentation) • [Contributing](#-contributing)
 
 </div>
 
 ---
 
-## < Overview
+## 🎬 Demo
+
+<details>
+<summary>Click to see OSA in action</summary>
+
+```
+╔════════════════════════════════════════════════════════════╗
+║                    OSA - OmniMind Super Agent              ║
+╠════════════════════════════════════════════════════════════╣
+║  🧠 THINKING (10,247 simultaneous thoughts)               ║
+║                                                            ║
+║  ├─ Market Analysis (depth: 3)                            ║
+║  ├─ Technical Architecture (depth: 5)                     ║
+║  └─ User Psychology (depth: 4)                           ║
+║                                                            ║
+║  ✅ TASK COMPLETED: 15,342 thoughts • 72% time saved     ║
+╚════════════════════════════════════════════════════════════╝
+```
+
+See the [full demo](docs/demo.md) or run `python demo_animation.py` to watch OSA think!
+
+</details>
+
+## 🚀 Overview
 
 OSA (OmniMind Super Agent) is a revolutionary autonomous AI system that thinks and works like a human. It combines continuous deep thinking, adaptive problem-solving, leadership capabilities, and self-improvement into a single intelligent system that can accomplish any task end-to-end without human intervention.
 
-### <� What Makes OSA Different?
+### 💡 What Makes OSA Different?
 
 Unlike traditional AI agents that follow linear execution paths, OSA:
 - **Thinks continuously** about thousands of aspects simultaneously
@@ -30,34 +53,34 @@ Unlike traditional AI agents that follow linear execution paths, OSA:
 - **Reviews its own architecture** daily for self-improvement
 - **Works autonomously** without requiring human supervision
 
-## =� Features
+## ⚡ Features
 
-### >� Human-like Thinking Engine
+### 🧠 Human-like Thinking Engine
 - **10,000+ simultaneous thoughts** maintained in working memory
 - **Nested reasoning chains** up to 10 levels deep
 - **Multi-context awareness** with seamless context switching
 - **Thought connections** discovery in real-time
 - **5 problem-solving patterns**: Divide & conquer, reverse engineering, lateral thinking, first principles, analogical reasoning
 
-### = Adaptive Problem-Solving
+### 🔄 Adaptive Problem-Solving
 - **Blocker detection** identifies obstacles instantly
 - **Alternative path generation** creates 3+ solutions per blocker
 - **Never fails** - always finds another way
 - **Confidence scoring** for each reasoning path
 
-### ( Continuous Learning
+### 📚 Continuous Learning
 - **Pattern recognition** identifies repeated tasks
 - **Solution caching** stores successful approaches
 - **70% time savings** on similar tasks
 - **Internal debates** for optimal decision making
 
-### = Self-Improvement
+### 🔍 Self-Improvement
 - **Daily architecture review** at 2 AM
 - **Tool research** finds best existing solutions
 - **Automatic implementation** of improvements
 - **Performance monitoring** and optimization
 
-## =� Installation
+## 📦 Installation
 
 ```bash
 # Clone the repository
@@ -76,7 +99,7 @@ curl -fsSL https://ollama.ai/install.sh | sh
 ollama pull llama3.2:3b
 ```
 
-## <� Quick Start
+## 🚀 Quick Start
 
 ```python
 from osa_complete_final import create_complete_osa
@@ -96,7 +119,7 @@ result = await osa.think_and_accomplish(
 python run_complete_osa.py
 ```
 
-## =� Web Monitoring
+## 📊 Web Monitoring
 
 Real-time monitoring of OSA's thinking process:
 
@@ -115,7 +138,7 @@ Features:
 - Session management
 - Export capabilities
 
-## =� Performance
+## ⚡ Performance
 
 | Metric | Performance |
 |--------|------------|
@@ -125,11 +148,11 @@ Features:
 | Alternative generation | <1 second |
 | Learning rate | 10-15% per task |
 
-## > Contributing
+## 🤝 Contributing
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
 
-## =� License
+## 📄 License
 
 MIT License - see [LICENSE](LICENSE) file.
 
@@ -137,6 +160,6 @@ MIT License - see [LICENSE](LICENSE) file.
 
 <div align="center">
 
-**OSA - Thinking at the speed of thought, working at the speed of light** =�
+**OSA - Thinking at the speed of thought, working at the speed of light** 🚀
 
 </div>
