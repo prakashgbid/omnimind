@@ -24,7 +24,7 @@ from .modules.learning import ContinuousLearningSystem
 from .logger import setup_logger, OSALogger
 
 
-class OSACompleteFinal(OSAEnhanced):
+class OSACompleteFinal:
     """
     The complete OSA with all capabilities:
     - Core intelligence and orchestration

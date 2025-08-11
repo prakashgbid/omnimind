@@ -1,9 +1,10 @@
 """
 OmniMind Core Module
 
-Contains the main OmniMind class and core functionality.
+Contains the main OSA class and core functionality.
 """
 
-from .omnimind import OmniMind
+from .osa_minimal import OSACompleteFinal
+from .logger import setup_logger, OSALogger
 
-__all__ = ["OmniMind"]
+__all__ = ["OSACompleteFinal", "setup_logger", "OSALogger"]

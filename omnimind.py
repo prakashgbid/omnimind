@@ -12,7 +12,7 @@ from pathlib import Path
 # Add src to path
 sys.path.insert(0, str(Path(__file__).parent / "src"))
 
-from core.osa import OSACompleteFinal
+from core.osa_minimal import OSACompleteFinal
 from core.logger import setup_logger
 
 # Setup logger
