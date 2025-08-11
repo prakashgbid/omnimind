@@ -30,6 +30,7 @@ from core.readiness import SystemReadiness
 from core.metrics import get_metrics_tracker
 from core.action_hooks import get_action_hooks, get_thinking_status
 from core.thinking_states import get_thinking_state, ThinkingAnimator
+from core.command_approval import CommandApproval, SmartCommandAnalyzer, ApprovalChoice
 
 # Terminal colors and styles
 class Colors:
@@ -79,6 +80,7 @@ class OSATerminal:
         self.readiness_checker = SystemReadiness(verbose=False)
         self.action_hooks = get_action_hooks()
         self.thinking_status = get_thinking_status()
+        self.command_approval = CommandApproval(timeout=5)
         
         # Setup signal handlers
         signal.signal(signal.SIGINT, self.handle_interrupt)
@@ -360,6 +362,14 @@ class OSATerminal:
             print(f"\n{Colors.CYAN}OSA Version:{Colors.RESET} 3.0 Claude-Style\n")
             return
         
+        elif command.startswith("/exec "):
+            # Execute a command with approval
+            cmd = command[6:].strip()
+            if cmd:
+                await self.execute_command(cmd, "User-requested command")
+            else:
+                print(f"{Colors.YELLOW}Usage:{Colors.RESET} /exec <command>")
+            return
         
         elif command == "/save":
             self.save_session()
@@ -369,6 +379,87 @@ class OSATerminal:
             print(f"{Colors.YELLOW}Unknown command:{Colors.RESET} {command}")
             print(f"{Colors.DIM}Type / to see available commands{Colors.RESET}\n")
             return
+    
+    async def execute_command(self, command: str, description: str = "") -> bool:
+        """Execute a command with approval if needed."""
+        # Check if command needs approval
+        if SmartCommandAnalyzer.needs_approval(command):
+            risk = SmartCommandAnalyzer.get_risk_level(command)
+            
+            # Add risk indicator to description
+            if risk == "HIGH":
+                description = f"⚠️  HIGH RISK: {description}" if description else "⚠️  HIGH RISK COMMAND"
+            elif risk == "MEDIUM":
+                description = f"⚡ {description}" if description else "⚡ Modifying command"
+            
+            # Get approval
+            choice, explanation = await self.command_approval.get_approval(
+                command, 
+                description,
+                auto_approve=risk != "HIGH"  # Don't auto-approve high risk
+            )
+            
+            if choice == ApprovalChoice.YES or choice == ApprovalChoice.TIMEOUT:
+                # Execute the command
+                try:
+                    result = subprocess.run(
+                        command,
+                        shell=True,
+                        capture_output=True,
+                        text=True,
+                        timeout=30
+                    )
+                    
+                    if result.returncode == 0:
+                        print(f"\n{Colors.GREEN}✓{Colors.RESET} Command executed successfully")
+                        if result.stdout:
+                            print(f"{Colors.DIM}{result.stdout}{Colors.RESET}")
+                        return True
+                    else:
+                        print(f"\n{Colors.RED}✗{Colors.RESET} Command failed with exit code {result.returncode}")
+                        if result.stderr:
+                            print(f"{Colors.RED}{result.stderr}{Colors.RESET}")
+                        return False
+                        
+                except subprocess.TimeoutExpired:
+                    print(f"\n{Colors.YELLOW}⚠{Colors.RESET} Command timed out after 30 seconds")
+                    return False
+                except Exception as e:
+                    print(f"\n{Colors.RED}✗{Colors.RESET} Error executing command: {e}")
+                    return False
+                    
+            elif choice == ApprovalChoice.NO:
+                print(f"\n{Colors.YELLOW}⚠{Colors.RESET} Command not executed")
+                if explanation:
+                    print(f"User feedback: {explanation}")
+                    # Could pass this feedback to OSA for learning
+                    await self.action_hooks.knowledge_acquired(f"User preference: {explanation}")
+                return False
+            else:
+                print(f"\n{Colors.YELLOW}⚠{Colors.RESET} Command cancelled")
+                return False
+        else:
+            # Safe command, execute directly
+            print(f"\n{Colors.GREEN}✓{Colors.RESET} Executing safe command: {command}")
+            try:
+                result = subprocess.run(
+                    command,
+                    shell=True,
+                    capture_output=True,
+                    text=True,
+                    timeout=30
+                )
+                
+                if result.stdout:
+                    print(f"{Colors.DIM}{result.stdout}{Colors.RESET}")
+                if result.stderr:
+                    print(f"{Colors.YELLOW}{result.stderr}{Colors.RESET}")
+                    
+                return result.returncode == 0
+                
+            except Exception as e:
+                print(f"\n{Colors.RED}✗{Colors.RESET} Error: {e}")
+                return False
     
     def show_command_suggestions(self):
         """Show available commands when user types /."""
@@ -384,7 +475,8 @@ class OSATerminal:
             ("/status", "Show OSA status"),
             ("/reset", "Reset conversation context"),
             ("/model", "Show current model"),
-            ("/version", "Show OSA version")
+            ("/version", "Show OSA version"),
+            ("/exec <cmd>", "Execute a system command")
         ]
         
         for cmd, desc in commands:
