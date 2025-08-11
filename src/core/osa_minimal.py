@@ -60,46 +60,33 @@ class OSACompleteFinal:
         # Check if Ollama is available
         if self.client:
             try:
-                models = self.client.list()
-                self.logger.info(f"Available models: {len(models.get('models', []))} models found")
+                # Simple and direct approach - just use subprocess
+                import subprocess
+                result = subprocess.run(['ollama', 'list'], capture_output=True, text=True, timeout=2)
                 
-                # Check if requested model exists
-                model_list = models.get('models', [])
-                # Try to extract model names properly
-                if model_list and isinstance(model_list[0], dict):
-                    # Standard format
-                    model_names = []
-                    for m in model_list:
-                        if 'name' in m:
-                            model_names.append(m['name'])
-                        elif 'modelfile' in m:
-                            model_names.append(m['modelfile'])
-                        else:
-                            # Try to use the first string key
-                            for key, value in m.items():
-                                if isinstance(value, str) and ':' in value:
-                                    model_names.append(value)
-                                    break
-                else:
-                    # Fallback - use ollama list command directly
-                    import subprocess
-                    result = subprocess.run(['ollama', 'list'], capture_output=True, text=True)
-                    if result.returncode == 0:
-                        lines = result.stdout.strip().split('\n')[1:]  # Skip header
-                        model_names = [line.split()[0] for line in lines if line.strip()]
-                    else:
-                        model_names = []
-                
-                if not model_names:
-                    # Last resort - use known default models
-                    model_names = ["llama3.2:3b", "mistral:7b", "phi3:mini"]
-                    self.logger.info(f"Using default model list: {model_names}")
-                
-                if self.model not in model_names and model_names:
-                    self.logger.warning(f"Model {self.model} not found. Available: {model_names}")
+                if result.returncode == 0:
+                    # Parse the output
+                    lines = result.stdout.strip().split('\n')[1:]  # Skip header
+                    model_names = [line.split()[0] for line in lines if line.strip()]
+                    
                     if model_names:
-                        self.model = model_names[0]
-                        self.logger.info(f"Using fallback model: {self.model}")
+                        self.logger.info(f"Available models: {model_names}")
+                        
+                        # Check if requested model exists
+                        if self.model not in model_names:
+                            self.logger.warning(f"Model {self.model} not found")
+                            self.model = model_names[0]  # Use first available
+                            self.logger.info(f"Using model: {self.model}")
+                        else:
+                            self.logger.info(f"Using requested model: {self.model}")
+                    else:
+                        # No models found, use default
+                        self.logger.warning("No models found, using default: llama3.2:3b")
+                        self.model = "llama3.2:3b"
+                else:
+                    # Ollama command failed, use default
+                    self.logger.warning("Could not list models, using default: llama3.2:3b")
+                    self.model = "llama3.2:3b"
             except Exception as e:
                 self.logger.error(f"Error checking models: {e}")
         

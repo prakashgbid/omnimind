@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 OSA - OmniMind Super Agent CLI
-Professional command-line interface similar to Claude Code but with enhanced capabilities.
+Professional command-line interface with Claude Code-style formatting.
 """
 
 import os
@@ -11,35 +11,43 @@ import argparse
 import json
 import readline
 import atexit
+import textwrap
+import shutil
 from pathlib import Path
 from datetime import datetime
-from typing import Optional, Dict, Any, List
+from typing import Optional, Dict, Any, List, Tuple
 import subprocess
 import signal
+from enum import Enum
 
 # Add the src directory to path
 SCRIPT_DIR = Path(__file__).resolve().parent
 sys.path.insert(0, str(SCRIPT_DIR / "src"))
 
-from core.osa_minimal import OSACompleteFinal
+from core.osa_autonomous import OSAAutonomous, IntentType
 from core.logger import setup_logger
 
-# Rich terminal UI (optional, fallback to basic if not available)
-try:
-    from rich.console import Console
-    from rich.panel import Panel
-    from rich.markdown import Markdown
-    from rich.syntax import Syntax
-    from rich.prompt import Prompt
-    from rich.live import Live
-    from rich.layout import Layout
-    from rich.table import Table
-    from rich import print as rprint
-    RICH_AVAILABLE = True
-    console = Console()
-except ImportError:
-    RICH_AVAILABLE = False
-    console = None
+# Terminal colors and styles
+class Colors:
+    RESET = '\033[0m'
+    BOLD = '\033[1m'
+    DIM = '\033[2m'
+    
+    # Colors
+    BLACK = '\033[30m'
+    RED = '\033[31m'
+    GREEN = '\033[32m'
+    YELLOW = '\033[33m'
+    BLUE = '\033[34m'
+    MAGENTA = '\033[35m'
+    CYAN = '\033[36m'
+    WHITE = '\033[37m'
+    
+    # Background
+    BG_GRAY = '\033[100m'
+    
+    # Special
+    UNDERLINE = '\033[4m'
 
 # Global OSA instance
 osa_instance = None
@@ -52,17 +60,17 @@ HISTORY_FILE = CONFIG_DIR / "history.txt"
 SESSION_FILE = CONFIG_DIR / "session.json"
 
 class OSATerminal:
-    """OSA Terminal Interface - Claude Code style."""
+    """OSA Terminal with Claude Code-style interface."""
     
     def __init__(self):
         self.osa = None
         self.config = self.load_config()
         self.setup_readline()
         self.running = True
-        self.context_mode = "general"  # general, code, thinking, learning
         self.session_start = datetime.now()
         self.command_count = 0
         self.current_project = Path.cwd()
+        self.terminal_width = shutil.get_terminal_size().columns
         
         # Setup signal handlers
         signal.signal(signal.SIGINT, self.handle_interrupt)
@@ -84,12 +92,8 @@ class OSATerminal:
                 "/exit": "Exit OSA",
                 "/clear": "Clear screen",
                 "/history": "Show history",
-                "/think": "Enter thinking mode",
-                "/code": "Enter code mode",
                 "/save": "Save session",
-                "/status": "Show status",
-                "/model": "Change model",
-                "/project": "Set project context"
+                "/status": "Show status"
             }
         }
         
@@ -153,87 +157,119 @@ class OSATerminal:
     
     def handle_interrupt(self, signum, frame):
         """Handle Ctrl+C gracefully."""
-        print("\n\n💡 Tip: Use /exit or Ctrl+D to exit OSA")
-        print("📝 Your session is auto-saved\n")
+        print(f"\n\n{Colors.YELLOW}!{Colors.RESET} Use 'exit' or Ctrl+D to quit")
         # Don't exit, just return to prompt
+    
+    def show_thinking(self, message: str = "Thinking..."):
+        """Show thinking indicator like Claude Code."""
+        print(f"\n{Colors.YELLOW}✻{Colors.RESET} {Colors.DIM}{message}{Colors.RESET}", end='', flush=True)
+    
+    def clear_thinking(self):
+        """Clear the thinking line."""
+        print('\r' + ' ' * 80 + '\r', end='', flush=True)
+    
+    def show_tool_call(self, tool_name: str, params: str = ""):
+        """Show tool call like Claude Code."""
+        print(f"\n{Colors.CYAN}⏺{Colors.RESET} {Colors.BOLD}{tool_name}{Colors.RESET}", end='')
+        if params:
+            print(f"{Colors.DIM}({params}){Colors.RESET}")
+        else:
+            print()
+    
+    def show_tool_output(self, output: str, collapsed: bool = True):
+        """Show tool output with Claude Code style."""
+        lines = output.strip().split('\n')
+        width = min(self.terminal_width - 6, 94)
+        
+        # Connector line
+        print(f"  {Colors.DIM}⎿{Colors.RESET}  ", end='')
+        
+        if collapsed and len(lines) > 5:
+            # Show first 3 lines
+            for i, line in enumerate(lines[:3]):
+                if i > 0:
+                    print("     ", end='')
+                if len(line) > width:
+                    line = line[:width-3] + "..."
+                print(line)
+            
+            # Show collapse indicator
+            remaining = len(lines) - 3
+            print(f"     {Colors.DIM}… +{remaining} lines (ctrl+r to expand){Colors.RESET}")
+        else:
+            # Show all lines
+            for i, line in enumerate(lines):
+                if i > 0:
+                    print("     ", end='')
+                if len(line) > width:
+                    wrapped = textwrap.wrap(line, width)
+                    print(wrapped[0])
+                    for wrap_line in wrapped[1:]:
+                        print("     " + wrap_line)
+                else:
+                    print(line)
+    
+    def show_error(self, error: str):
+        """Show error message."""
+        print(f"\n{Colors.RED}✗{Colors.RESET} {Colors.BOLD}Error:{Colors.RESET} {error}")
+    
+    def show_status(self):
+        """Show OSA status."""
+        if self.osa:
+            status = self.osa.get_status()
+            
+            print("\n📊 OSA Status:")
+            print("-" * 40)
+            for key, value in status.items():
+                print(f"{key:20}: {value}")
+            print(f"Session Duration    : {str(datetime.now() - self.session_start).split('.')[0]}")
+        print()
     
     def clear_screen(self):
         """Clear the terminal screen."""
-        os.system('clear' if os.name == 'posix' else 'cls')
+        # Use ANSI escape codes instead of system clear
+        print('\033[2J\033[H', end='')
     
     def print_banner(self):
-        """Print OSA banner."""
-        self.clear_screen()
-        
-        if RICH_AVAILABLE:
-            banner = """
-╔══════════════════════════════════════════════════════════════╗
-║                                                              ║
-║     ██████  ███████  █████      OSA Terminal v1.0.0         ║
-║    ██    ██ ██      ██   ██     OmniMind Super Agent        ║
-║    ██    ██ ███████ ███████                                 ║
-║    ██    ██      ██ ██   ██     Enhanced AI Assistant       ║
-║     ██████  ███████ ██   ██     Think • Learn • Create      ║
-║                                                              ║
-╚══════════════════════════════════════════════════════════════╝
-            """
-            console.print(banner, style="bold cyan")
-            
-            # Print quick info
-            info_table = Table(show_header=False, box=None)
-            info_table.add_column("", style="dim")
-            info_table.add_column("")
-            
-            info_table.add_row("📁 Project:", str(self.current_project))
-            info_table.add_row("🤖 Model:", self.config['model'])
-            info_table.add_row("💭 Thinking:", "✓" if self.config['enable_thinking'] else "✗")
-            info_table.add_row("🧠 Learning:", "✓" if self.config['enable_learning'] else "✗")
-            
-            console.print(info_table)
-            console.print()
-        else:
-            print("="*60)
-            print("OSA Terminal v1.0.0 - OmniMind Super Agent")
-            print("Think • Learn • Create")
-            print("="*60)
-            print(f"📁 Project: {self.current_project}")
-            print(f"🤖 Model: {self.config['model']}")
-            print()
-        
-        print("Type /help for commands, or enter your prompt")
-        print("Press Ctrl+D or type /exit to quit\n")
+        """Print minimal OSA banner."""
+        # Don't clear screen, just add some space
+        print(f"\n{Colors.BOLD}OSA{Colors.RESET} - Autonomous AI Assistant")
+        print(f"{Colors.DIM}I understand what you need automatically{Colors.RESET}\n")
     
     async def initialize_osa(self):
         """Initialize the OSA instance."""
-        print("🚀 Initializing OSA systems...")
+        print(f"{Colors.DIM}Initializing OSA systems...{Colors.RESET}")
         
         try:
-            self.osa = OSACompleteFinal(self.config)
+            # Suppress debug output
+            import logging
+            logging.getLogger('OSA-Auto').setLevel(logging.WARNING)
+            
+            self.osa = OSAAutonomous(self.config)
             await self.osa.initialize()
-            
-            if RICH_AVAILABLE:
-                console.print("✅ OSA ready!", style="bold green")
-            else:
-                print("✅ OSA ready!")
-            
+            print(f"{Colors.GREEN}✓{Colors.RESET} OSA ready!\n")
             return True
         except Exception as e:
-            if RICH_AVAILABLE:
-                console.print(f"❌ Failed to initialize: {e}", style="bold red")
-            else:
-                print(f"❌ Failed to initialize: {e}")
+            self.show_error(f"Failed to initialize: {e}")
             return False
     
-    def get_prompt(self) -> str:
-        """Get the command prompt based on context."""
-        mode_symbol = {
-            "general": "🤖",
-            "code": "💻",
-            "thinking": "💭",
-            "learning": "🧠"
-        }.get(self.context_mode, "▶")
+    def draw_input_box(self) -> str:
+        """Draw a distinct input box like Claude Code."""
+        width = min(self.terminal_width - 4, 100)
         
-        return f"{mode_symbol} OSA> "
+        # Top border
+        print(f"{Colors.DIM}╭{'─' * (width - 2)}╮{Colors.RESET}")
+        
+        # Input area with styled prompt - print the left border and prompt
+        print(f"{Colors.DIM}│{Colors.RESET} {Colors.BOLD}{Colors.CYAN}You{Colors.RESET} ", end='', flush=True)
+        
+        # Return empty for input() to use
+        return ""
+    
+    def close_input_box(self):
+        """Close the input box after input."""
+        width = min(self.terminal_width - 4, 100)
+        print(f"{Colors.DIM}╰{'─' * (width - 2)}╯{Colors.RESET}")
     
     async def process_command(self, command: str) -> bool:
         """
@@ -261,46 +297,6 @@ class OSATerminal:
             self.show_status()
             return True
         
-        elif command == "/think":
-            self.context_mode = "thinking"
-            print("💭 Entered thinking mode - I'll think deeply about topics")
-            return True
-        
-        elif command == "/code":
-            self.context_mode = "code"
-            print("💻 Entered code mode - Optimized for programming tasks")
-            return True
-        
-        elif command == "/general":
-            self.context_mode = "general"
-            print("🤖 Entered general mode")
-            return True
-        
-        elif command == "/learn":
-            self.context_mode = "learning"
-            print("🧠 Entered learning mode - I'll learn from our interaction")
-            return True
-        
-        elif command.startswith("/model "):
-            new_model = command[7:].strip()
-            if new_model:
-                self.config['model'] = new_model
-                self.save_config()
-                print(f"🔄 Model changed to: {new_model}")
-                print("Restart OSA for changes to take effect")
-            return True
-        
-        elif command.startswith("/project "):
-            project_path = command[9:].strip()
-            if project_path:
-                path = Path(project_path).resolve()
-                if path.exists():
-                    self.current_project = path
-                    os.chdir(path)
-                    print(f"📁 Project context set to: {path}")
-                else:
-                    print(f"❌ Path does not exist: {path}")
-            return True
         
         elif command == "/save":
             self.save_session()
@@ -319,20 +315,10 @@ class OSATerminal:
 - `/exit` or `/quit` - Exit OSA
 - `/clear` - Clear screen
 
-## Modes
-- `/general` - General assistant mode
-- `/code` - Code generation mode
-- `/think` - Deep thinking mode  
-- `/learn` - Learning mode
-
 ## Session
 - `/history` - Show command history
 - `/save` - Save current session
 - `/status` - Show OSA status
-
-## Configuration
-- `/model <name>` - Change model
-- `/project <path>` - Set project context
 
 ## Tips
 - Use arrow keys to navigate history
@@ -374,10 +360,9 @@ class OSATerminal:
                 table.add_column("Value", style="green")
                 
                 table.add_row("Model", status['model'])
-                table.add_row("Thinking", "✓" if status['thinking_enabled'] else "✗")
-                table.add_row("Learning", "✓" if status['learning_enabled'] else "✗")
-                table.add_row("Tasks Processed", str(status['tasks_processed']))
-                table.add_row("Thoughts Generated", str(status['thoughts_generated']))
+                table.add_row("Conversations", str(status.get('conversations', 0)))
+                table.add_row("Learning Entries", str(status.get('learning_entries', 0)))
+                table.add_row("Last Intent", status.get('last_intent', 'None'))
                 table.add_row("Session Duration", str(datetime.now() - self.session_start).split('.')[0])
                 table.add_row("Ollama Connected", "✓" if status['ollama_connected'] else "✗")
                 
@@ -394,7 +379,6 @@ class OSATerminal:
         """Save current session."""
         session_data = {
             "timestamp": datetime.now().isoformat(),
-            "project": str(self.current_project),
             "model": self.config['model'],
             "command_count": self.command_count,
             "history": session_history[-50:] if session_history else []
@@ -406,59 +390,80 @@ class OSATerminal:
         print(f"💾 Session saved to {SESSION_FILE}")
     
     async def process_prompt(self, prompt: str):
-        """Process a user prompt based on current mode."""
+        """Process a user prompt autonomously."""
         self.command_count += 1
         session_history.append({
             "prompt": prompt,
-            "mode": self.context_mode,
             "timestamp": datetime.now().isoformat()
         })
         
         try:
-            # Add mode-specific context
-            if self.context_mode == "code":
-                enhanced_prompt = f"[Programming Task] {prompt}\nProvide clean, well-commented code with explanations."
-            elif self.context_mode == "thinking":
-                result = await self.osa.think_about(prompt)
-            elif self.context_mode == "learning":
-                enhanced_prompt = f"[Learning Mode] {prompt}\nLearn from this and provide comprehensive insights."
-                result = await self.osa.accomplish_task(enhanced_prompt)
-            else:
-                result = await self.osa.accomplish_task(prompt)
+            # Check for exit
+            if prompt.lower() in ['exit', 'quit', 'bye']:
+                await self.shutdown()
+                return
             
-            # Handle thinking mode specially
-            if self.context_mode == "thinking":
-                # Already got result from think_about
-                pass
-            elif self.context_mode != "thinking":
-                result = await self.osa.accomplish_task(enhanced_prompt if self.context_mode in ["code", "learning"] else prompt)
+            # Show thinking
+            self.show_thinking("OSA is analyzing your request...")
             
-            # Display result
-            if RICH_AVAILABLE:
-                # Format based on content type
-                if "```" in result:
-                    # Contains code blocks
-                    console.print(Markdown(result))
-                else:
-                    # Regular text
-                    console.print(Panel(result, title="Response", border_style="green"))
+            # Process autonomously - OSA figures out what to do
+            result = await self.osa.process_autonomously(prompt)
+            
+            # Clear thinking
+            self.clear_thinking()
+            
+            # Parse result to extract intent
+            lines = result.split('\n\n', 1)
+            if len(lines) > 1:
+                status_line = lines[0]
+                content = lines[1]
+                
+                # Extract intent type from status
+                intent_type = None
+                for intent in IntentType:
+                    if intent.value.replace('_', ' ').lower() in status_line.lower():
+                        intent_type = intent
+                        break
+                
+                # Show response with proper formatting
+                if intent_type:
+                    emoji = self.get_intent_emoji(intent_type)
+                    self.show_tool_call(f"{emoji} {intent_type.value.replace('_', ' ').title()}")
+                
+                # Show output
+                self.show_tool_output(content)
             else:
-                print("\n" + "="*60)
-                print(result)
-                print("="*60 + "\n")
+                # Simple response
+                self.show_tool_output(result)
             
             # Save to history
-            session_history[-1]["response"] = result[:500]  # Save first 500 chars
+            if session_history:
+                session_history[-1]["response"] = result[:500]  # Save first 500 chars
             
         except Exception as e:
-            if RICH_AVAILABLE:
-                console.print(f"❌ Error: {e}", style="bold red")
-            else:
-                print(f"❌ Error: {e}")
+            self.clear_thinking()
+            self.show_error(str(e))
+    
+    def get_intent_emoji(self, intent: IntentType) -> str:
+        """Get emoji for intent type."""
+        emoji_map = {
+            IntentType.CODE_GENERATION: "💻",
+            IntentType.CODE_DEBUG: "🐛",
+            IntentType.CODE_REFACTOR: "🔧",
+            IntentType.DEEP_THINKING: "🧠",
+            IntentType.PROBLEM_SOLVING: "🎯",
+            IntentType.LEARNING: "📚",
+            IntentType.EXPLANATION: "💡",
+            IntentType.CREATIVE: "🎨",
+            IntentType.ANALYSIS: "🔍",
+            IntentType.GENERAL_CHAT: "💬",
+            IntentType.SYSTEM_TASK: "⚙️"
+        }
+        return emoji_map.get(intent, "🤖")
     
     async def shutdown(self):
         """Shutdown OSA gracefully."""
-        print("\n👋 Shutting down OSA...")
+        print(f"\n{Colors.GREEN}✓{Colors.RESET} Shutting down OSA...")
         
         if self.config.get("auto_save", True):
             self.save_session()
@@ -469,7 +474,13 @@ class OSATerminal:
         self.save_history()
         self.save_config()
         
-        print("✨ Thanks for using OSA! Goodbye!")
+        # Show session stats
+        duration = datetime.now() - self.session_start
+        print(f"\n{Colors.DIM}Session Summary:{Colors.RESET}")
+        print(f"  Duration: {str(duration).split('.')[0]}")
+        print(f"  Interactions: {self.command_count}")
+        
+        print(f"\n{Colors.GREEN}✓{Colors.RESET} Goodbye!")
         self.running = False
         return True
     
@@ -486,36 +497,30 @@ class OSATerminal:
         # Main loop
         while self.running:
             try:
-                # Get input
-                prompt_text = self.get_prompt()
-                
-                if RICH_AVAILABLE:
-                    user_input = Prompt.ask(prompt_text)
-                else:
-                    user_input = input(prompt_text)
+                # Simple input box
+                width = 78
+                print(f"{Colors.DIM}╭{'─' * width}╮{Colors.RESET}")
+                user_input = input(f"{Colors.DIM}│{Colors.RESET} {Colors.BOLD}{Colors.CYAN}You:{Colors.RESET} ")
+                print(f"{Colors.DIM}╰{'─' * width}╯{Colors.RESET}")
                 
                 # Check for empty input
                 if not user_input.strip():
                     continue
                 
-                # Check for commands
+                # Check for special commands (minimal set)
                 if user_input.startswith('/'):
                     if await self.process_command(user_input):
                         if not self.running:
                             break
                         continue
                 
-                # Process prompt
+                # Process prompt autonomously
                 await self.process_prompt(user_input)
                 
-            except EOFError:
-                # Ctrl+D pressed
+            except (KeyboardInterrupt, EOFError):
+                # Ctrl+C or Ctrl+D pressed
                 await self.shutdown()
                 break
-            except KeyboardInterrupt:
-                # Ctrl+C pressed
-                print("\n💡 Use /exit or Ctrl+D to quit")
-                continue
             except Exception as e:
                 print(f"❌ Unexpected error: {e}")
                 continue
@@ -541,23 +546,6 @@ Examples:
         help="Model to use (e.g., llama3.2:3b, mistral:7b)"
     )
     
-    parser.add_argument(
-        "--project",
-        default=None,
-        help="Set project directory context"
-    )
-    
-    parser.add_argument(
-        "--no-thinking",
-        action="store_true",
-        help="Disable continuous thinking"
-    )
-    
-    parser.add_argument(
-        "--no-learning",
-        action="store_true",
-        help="Disable continuous learning"
-    )
     
     parser.add_argument(
         "--verbose",
@@ -568,7 +556,7 @@ Examples:
     parser.add_argument(
         "--version",
         action="version",
-        version="OSA 1.0.0"
+        version="OSA Claude-Style 3.0"
     )
     
     args = parser.parse_args()
@@ -580,17 +568,6 @@ Examples:
     if args.model:
         terminal.config['model'] = args.model
     
-    if args.project:
-        project_path = Path(args.project).resolve()
-        if project_path.exists():
-            terminal.current_project = project_path
-            os.chdir(project_path)
-    
-    if args.no_thinking:
-        terminal.config['enable_thinking'] = False
-    
-    if args.no_learning:
-        terminal.config['enable_learning'] = False
     
     if args.verbose:
         terminal.config['verbose'] = True

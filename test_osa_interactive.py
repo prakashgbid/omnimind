@@ -1,4 +1,4 @@
-#\!/usr/bin/env python3
+#!/usr/bin/env python3
 """Test OSA with actual Ollama interaction"""
 
 import ollama
@@ -28,9 +28,8 @@ try:
     print(response['response'])
     print("-" * 50)
     
-    print("\n✨ OSA is working correctly\!")
+    print("\n✨ OSA is working correctly!")
     
 except Exception as e:
     print(f"\n❌ Error: {e}")
     sys.exit(1)
-EOF < /dev/null
