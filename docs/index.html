@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OSA - Human-like Thinking AI</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        :root {
+            --primary: #8b5cf6;
+            --secondary: #3b82f6;
+            --dark: #0a0a0a;
+            --light: #ffffff;
+            --gray: #6b7280;
+        }
+        
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: var(--light);
+            overflow-x: hidden;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        header {
+            text-align: center;
+            padding: 60px 20px;
+            animation: fadeIn 1s ease-out;
+        }
+        
+        .logo {
+            font-size: 72px;
+            margin-bottom: 20px;
+            animation: float 3s ease-in-out infinite;
+        }
+        
+        h1 {
+            font-size: 48px;
+            font-weight: 700;
+            margin-bottom: 20px;
+            background: linear-gradient(45deg, #fff, #e0e7ff);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        
+        .tagline {
+            font-size: 20px;
+            opacity: 0.9;
+            margin-bottom: 40px;
+        }
+        
+        .buttons {
+            display: flex;
+            gap: 20px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+        
+        .btn {
+            padding: 15px 30px;
+            border-radius: 8px;
+            text-decoration: none;
+            font-weight: 600;
+            transition: all 0.3s;
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .btn-primary {
+            background: var(--light);
+            color: var(--primary);
+        }
+        
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+        }
+        
+        .btn-secondary {
+            background: transparent;
+            color: var(--light);
+            border: 2px solid var(--light);
+        }
+        
+        .btn-secondary:hover {
+            background: var(--light);
+            color: var(--primary);
+        }
+        
+        .features {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 30px;
+            margin: 80px 0;
+        }
+        
+        .feature {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            padding: 30px;
+            border-radius: 12px;
+            text-align: center;
+            transition: all 0.3s;
+            animation: slideUp 0.6s ease-out;
+        }
+        
+        .feature:hover {
+            transform: translateY(-5px);
+            background: rgba(255, 255, 255, 0.15);
+        }
+        
+        .feature-icon {
+            font-size: 48px;
+            margin-bottom: 20px;
+        }
+        
+        .feature h3 {
+            font-size: 20px;
+            margin-bottom: 15px;
+        }
+        
+        .feature p {
+            opacity: 0.9;
+            line-height: 1.6;
+        }
+        
+        .stats {
+            display: flex;
+            justify-content: space-around;
+            flex-wrap: wrap;
+            gap: 30px;
+            margin: 60px 0;
+            padding: 40px;
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 12px;
+        }
+        
+        .stat {
+            text-align: center;
+        }
+        
+        .stat-value {
+            font-size: 36px;
+            font-weight: 700;
+            color: var(--light);
+        }
+        
+        .stat-label {
+            font-size: 14px;
+            opacity: 0.8;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        @keyframes float {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-10px); }
+        }
+        
+        @keyframes slideUp {
+            from { opacity: 0; transform: translateY(30px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        @media (max-width: 768px) {
+            h1 { font-size: 32px; }
+            .tagline { font-size: 16px; }
+            .features { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div class="logo">🧠</div>
+            <h1>OSA - OmniMind Super Agent</h1>
+            <p class="tagline">The Ultimate Autonomous AI System with Human-like Thinking</p>
+            
+            <div class="buttons">
+                <a href="https://github.com/prakashgbid/omnimind" class="btn btn-primary">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/>
+                    </svg>
+                    View on GitHub
+                </a>
+                <a href="#features" class="btn btn-secondary">Explore Features</a>
+            </div>
+        </header>
+        
+        <div class="stats">
+            <div class="stat">
+                <div class="stat-value">10K+</div>
+                <div class="stat-label">Simultaneous Thoughts</div>
+            </div>
+            <div class="stat">
+                <div class="stat-value">70%</div>
+                <div class="stat-label">Time Savings</div>
+            </div>
+            <div class="stat">
+                <div class="stat-value">10</div>
+                <div class="stat-label">Reasoning Levels</div>
+            </div>
+            <div class="stat">
+                <div class="stat-value">24/7</div>
+                <div class="stat-label">Self-Improvement</div>
+            </div>
+        </div>
+        
+        <div class="features" id="features">
+            <div class="feature">
+                <div class="feature-icon">💭</div>
+                <h3>Continuous Thinking</h3>
+                <p>Maintains 10,000+ simultaneous thoughts with nested reasoning chains up to 10 levels deep</p>
+            </div>
+            
+            <div class="feature">
+                <div class="feature-icon">🔄</div>
+                <h3>Never Gets Stuck</h3>
+                <p>Always finds alternative paths when blocked, ensuring task completion every time</p>
+            </div>
+            
+            <div class="feature">
+                <div class="feature-icon">📚</div>
+                <h3>Pattern Learning</h3>
+                <p>Recognizes patterns and reuses solutions, achieving 70% time savings on similar tasks</p>
+            </div>
+            
+            <div class="feature">
+                <div class="feature-icon">🔍</div>
+                <h3>Self-Improvement</h3>
+                <p>Daily architecture review at 2 AM, researching and implementing better tools automatically</p>
+            </div>
+            
+            <div class="feature">
+                <div class="feature-icon">👔</div>
+                <h3>Leadership Mode</h3>
+                <p>Breaks down complex tasks, delegates to multiple instances, and monitors progress</p>
+            </div>
+            
+            <div class="feature">
+                <div class="feature-icon">📊</div>
+                <h3>Real-time Monitor</h3>
+                <p>Web interface with live logs, thought graphs, metrics, and session management</p>
+            </div>
+        </div>
+        
+        <div style="text-align: center; padding: 40px 0;">
+            <h2 style="margin-bottom: 30px;">Ready to Experience Human-like AI?</h2>
+            <div class="buttons">
+                <a href="https://github.com/prakashgbid/omnimind#-quick-start" class="btn btn-primary">
+                    Get Started
+                </a>
+                <a href="https://github.com/prakashgbid/omnimind/releases" class="btn btn-secondary">
+                    Download v1.0.0
+                </a>
+            </div>
+        </div>
+        
+        <footer style="text-align: center; padding: 40px 0; opacity: 0.8;">
+            <p>OSA - Thinking at the speed of thought, working at the speed of light 🚀</p>
+            <p style="margin-top: 10px;">
+                <a href="https://github.com/prakashgbid/omnimind" style="color: white; text-decoration: none;">GitHub</a> •
+                <a href="https://github.com/prakashgbid/omnimind/issues" style="color: white; text-decoration: none;">Issues</a> •
+                <a href="https://github.com/prakashgbid/omnimind/discussions" style="color: white; text-decoration: none;">Discussions</a>
+            </p>
+        </footer>
+    </div>
+</body>
+</html>
