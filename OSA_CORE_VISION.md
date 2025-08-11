@@ -52,6 +52,26 @@
 - **Persistent Memory**: Remembers across all sessions
 - **24/7 Operation**: Works continuously
 
+### 🏗️ ARCHITECTURAL PRINCIPLES TO NEVER FORGET
+
+1. **MODULAR & COMPONENT-ORIENTED**
+   - Every module must be independent
+   - Loosely coupled via interfaces
+   - Can become its own open source project
+   - Communicates via events, not direct calls
+
+2. **OPEN SOURCE FIRST**
+   - Every utility could help the community
+   - Design for extraction and reuse
+   - Each module should solve real problems
+   - Encourage community contributions
+
+3. **NEVER CREATE MONOLITHS**
+   - Reject tight coupling
+   - Use dependency injection
+   - Favor composition over inheritance
+   - Test each module in isolation
+
 ### 🔄 CONTEXT PRESERVATION STRATEGY
 
 #### For Every New Session, Remember:

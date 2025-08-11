@@ -27,7 +27,7 @@ from .task_planner import get_task_planner, TaskType, TaskPriority
 from .mcp_client import get_mcp_client
 from .code_generator import get_code_generator, CodeGenerationRequest, CodeType, ProgrammingLanguage
 from .agent_orchestrator import get_agent_orchestrator, AgentType, CollaborationMode
-from .memory_persistence import get_persistent_memory, MemoryType, MemoryPriority
+from .memory_adapter import get_persistent_memory, MemoryType, MemoryPriority
 
 
 class IntentType(Enum):
