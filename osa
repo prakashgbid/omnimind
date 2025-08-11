@@ -116,9 +116,26 @@ class OSATerminal:
         # Enable tab completion
         readline.parse_and_bind("tab: complete")
         
-        # Load history
+        # Load history with error handling
         if HISTORY_FILE.exists():
-            readline.read_history_file(str(HISTORY_FILE))
+            try:
+                readline.read_history_file(str(HISTORY_FILE))
+            except (PermissionError, IOError) as e:
+                # Create new history file if permission error
+                print(f"Note: Could not load history: {e}")
+                try:
+                    HISTORY_FILE.touch()
+                    HISTORY_FILE.chmod(0o600)
+                except:
+                    pass
+        else:
+            # Create history file if it doesn't exist
+            try:
+                HISTORY_FILE.parent.mkdir(parents=True, exist_ok=True)
+                HISTORY_FILE.touch()
+                HISTORY_FILE.chmod(0o600)
+            except:
+                pass
         
         # Set history size
         readline.set_history_length(self.config.get("max_history", 1000))
@@ -128,7 +145,11 @@ class OSATerminal:
     
     def save_history(self):
         """Save command history."""
-        readline.write_history_file(str(HISTORY_FILE))
+        try:
+            readline.write_history_file(str(HISTORY_FILE))
+        except (PermissionError, IOError):
+            # Silently fail if we can't write history
+            pass
     
     def handle_interrupt(self, signum, frame):
         """Handle Ctrl+C gracefully."""
