@@ -1,11 +1,13 @@
-# >à OSA (OmniMind Super Agent)
+# >ï¿½ OSA (OmniMind Super Agent)
 
 <div align="center">
 
 ![OSA Banner](https://img.shields.io/badge/OSA-Human--like%20AI-purple?style=for-the-badge&logo=brain&logoColor=white)
 ![Python](https://img.shields.io/badge/Python-3.9%2B-blue?style=for-the-badge&logo=python&logoColor=white)
 ![License](https://img.shields.io/badge/License-MIT-green?style=for-the-badge)
-![Status](https://img.shields.io/badge/Status-Active-success?style=for-the-badge)
+![Tests](https://github.com/prakashgbid/omnimind/workflows/Tests/badge.svg)
+![Release](https://img.shields.io/github/v/release/prakashgbid/omnimind?style=for-the-badge)
+![Stars](https://img.shields.io/github/stars/prakashgbid/omnimind?style=for-the-badge)
 
 **The Ultimate Autonomous AI System with Human-like Thinking**
 
@@ -19,7 +21,7 @@
 
 OSA (OmniMind Super Agent) is a revolutionary autonomous AI system that thinks and works like a human. It combines continuous deep thinking, adaptive problem-solving, leadership capabilities, and self-improvement into a single intelligent system that can accomplish any task end-to-end without human intervention.
 
-### <¯ What Makes OSA Different?
+### <ï¿½ What Makes OSA Different?
 
 Unlike traditional AI agents that follow linear execution paths, OSA:
 - **Thinks continuously** about thousands of aspects simultaneously
@@ -28,9 +30,9 @@ Unlike traditional AI agents that follow linear execution paths, OSA:
 - **Reviews its own architecture** daily for self-improvement
 - **Works autonomously** without requiring human supervision
 
-## =€ Features
+## =ï¿½ Features
 
-### >à Human-like Thinking Engine
+### >ï¿½ Human-like Thinking Engine
 - **10,000+ simultaneous thoughts** maintained in working memory
 - **Nested reasoning chains** up to 10 levels deep
 - **Multi-context awareness** with seamless context switching
@@ -55,11 +57,11 @@ Unlike traditional AI agents that follow linear execution paths, OSA:
 - **Automatic implementation** of improvements
 - **Performance monitoring** and optimization
 
-## =æ Installation
+## =ï¿½ Installation
 
 ```bash
 # Clone the repository
-git clone https://github.com/yourusername/omnimind.git
+git clone https://github.com/prakashgbid/omnimind.git
 cd omnimind
 
 # Create virtual environment
@@ -74,7 +76,7 @@ curl -fsSL https://ollama.ai/install.sh | sh
 ollama pull llama3.2:3b
 ```
 
-## <® Quick Start
+## <ï¿½ Quick Start
 
 ```python
 from osa_complete_final import create_complete_osa
@@ -94,7 +96,7 @@ result = await osa.think_and_accomplish(
 python run_complete_osa.py
 ```
 
-## =¥ Web Monitoring
+## =ï¿½ Web Monitoring
 
 Real-time monitoring of OSA's thinking process:
 
@@ -113,7 +115,7 @@ Features:
 - Session management
 - Export capabilities
 
-## =Ê Performance
+## =ï¿½ Performance
 
 | Metric | Performance |
 |--------|------------|
@@ -127,7 +129,7 @@ Features:
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
 
-## =Ä License
+## =ï¿½ License
 
 MIT License - see [LICENSE](LICENSE) file.
 
@@ -135,6 +137,6 @@ MIT License - see [LICENSE](LICENSE) file.
 
 <div align="center">
 
-**OSA - Thinking at the speed of thought, working at the speed of light** =€
+**OSA - Thinking at the speed of thought, working at the speed of light** =ï¿½
 
 </div>
