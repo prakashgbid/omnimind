@@ -28,6 +28,7 @@ from core.osa_autonomous import OSAAutonomous, IntentType
 from core.logger import setup_logger
 from core.readiness import SystemReadiness
 from core.metrics import get_metrics_tracker
+from core.action_hooks import get_action_hooks, get_thinking_status
 
 # Terminal colors and styles
 class Colors:
@@ -75,6 +76,8 @@ class OSATerminal:
         self.terminal_width = shutil.get_terminal_size().columns
         self.metrics = get_metrics_tracker()
         self.readiness_checker = SystemReadiness(verbose=False)
+        self.action_hooks = get_action_hooks()
+        self.thinking_status = get_thinking_status()
         
         # Setup signal handlers
         signal.signal(signal.SIGINT, self.handle_interrupt)
@@ -167,10 +170,16 @@ class OSATerminal:
     def show_thinking(self, message: str = "Thinking..."):
         """Show thinking indicator like Claude Code."""
         print(f"\n{Colors.YELLOW}✻{Colors.RESET} {Colors.DIM}{message}{Colors.RESET}", end='', flush=True)
+        # Start thinking tracking
+        self.thinking_status.start_thinking(message)
     
     def clear_thinking(self):
         """Clear the thinking line."""
         print('\r' + ' ' * 80 + '\r', end='', flush=True)
+        # End thinking tracking
+        duration = self.thinking_status.end_thinking()
+        if duration > 0:
+            self.metrics.current_response.thinking_time = duration
     
     def show_tool_call(self, tool_name: str, params: str = ""):
         """Show tool call like Claude Code."""
@@ -563,6 +572,15 @@ class OSATerminal:
                     if intent.value.replace('_', ' ').lower() in status_line.lower():
                         intent_type = intent
                         break
+                
+                # Trigger action hooks based on intent
+                if intent_type:
+                    if intent_type == IntentType.LEARNING:
+                        await self.action_hooks.knowledge_acquired(f"User preference: {prompt[:50]}")
+                    elif intent_type == IntentType.CODE_GENERATION:
+                        await self.action_hooks.skill_learned("Code generation pattern", "user interaction")
+                    elif intent_type == IntentType.PROBLEM_SOLVING:
+                        await self.action_hooks.pattern_recognized("Problem-solving approach")
                 
                 # Show response with proper formatting
                 if intent_type:
