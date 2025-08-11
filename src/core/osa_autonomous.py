@@ -21,6 +21,7 @@ except ImportError:
     ollama = None
 
 from .logger import setup_logger
+from .langchain_engine import get_langchain_engine, LANGCHAIN_AVAILABLE
 
 
 class IntentType(Enum):
@@ -53,7 +54,16 @@ class OSAAutonomous:
         # Setup logger
         self.logger = setup_logger("OSA-Auto", level="DEBUG" if self.verbose else "INFO")
         
-        # Initialize Ollama client
+        # Initialize LangChain engine for advanced reasoning
+        self.langchain_engine = None
+        if LANGCHAIN_AVAILABLE:
+            try:
+                self.langchain_engine = get_langchain_engine(config)
+                self.logger.info("LangChain intelligence engine initialized")
+            except Exception as e:
+                self.logger.error(f"Failed to initialize LangChain: {e}")
+        
+        # Initialize Ollama client (fallback)
         self.client = None
         if ollama:
             try:
@@ -131,7 +141,21 @@ class OSAAutonomous:
         """Initialize OSA systems."""
         self.logger.info("🚀 Starting OSA Autonomous systems...")
         
-        # Check available models
+        # Initialize LangChain intelligence systems
+        if self.langchain_engine:
+            try:
+                from .action_hooks import get_action_hooks
+                self.langchain_engine.set_action_hooks(get_action_hooks())
+                
+                success = await self.langchain_engine.initialize_intelligence_systems()
+                if success:
+                    self.logger.info("🧠 Advanced intelligence systems initialized")
+                else:
+                    self.logger.warning("⚠️ Some intelligence systems failed to initialize")
+            except Exception as e:
+                self.logger.error(f"Error initializing LangChain: {e}")
+        
+        # Check available models (fallback)
         if self.client:
             try:
                 import subprocess
@@ -196,6 +220,23 @@ class OSAAutonomous:
         }
         return emoji_map.get(intent, "🤖")
     
+    def _map_intent_to_task_type(self, intent: IntentType) -> str:
+        """Map OSA intent to LangChain task type"""
+        intent_mapping = {
+            IntentType.CODE_GENERATION: "coding",
+            IntentType.CODE_DEBUG: "coding", 
+            IntentType.CODE_REFACTOR: "coding",
+            IntentType.DEEP_THINKING: "reasoning",
+            IntentType.PROBLEM_SOLVING: "reasoning",
+            IntentType.ANALYSIS: "reasoning",
+            IntentType.LEARNING: "rag_query",
+            IntentType.EXPLANATION: "reasoning",
+            IntentType.CREATIVE: "creative",
+            IntentType.GENERAL_CHAT: "general",
+            IntentType.SYSTEM_TASK: "general"
+        }
+        return intent_mapping.get(intent, "general")
+    
     async def process_autonomously(self, user_input: str) -> str:
         """
         Process user input completely autonomously.
@@ -218,7 +259,26 @@ class OSAAutonomous:
             "timestamp": datetime.now().isoformat()
         })
         
-        # Process based on intent
+        # Use LangChain for advanced processing if available
+        if self.langchain_engine:
+            try:
+                task_type = self._map_intent_to_task_type(intent)
+                response, metadata = await self.langchain_engine.query_with_memory(
+                    user_input, task_type
+                )
+                
+                # Add metadata to context
+                if "success" in metadata:
+                    self.conversation_context[-1]["langchain_used"] = True
+                    self.conversation_context[-1]["model_used"] = metadata.get("model_used", "unknown")
+                
+                return f"{status_msg}\n\n{response}"
+                
+            except Exception as e:
+                self.logger.error(f"LangChain processing failed: {e}")
+                # Fallback to original processing
+        
+        # Process based on intent (fallback)
         if intent == IntentType.CODE_GENERATION:
             response = await self._handle_code_generation(user_input)
         elif intent == IntentType.CODE_DEBUG:
@@ -484,16 +544,34 @@ Provide:
     
     def get_status(self) -> Dict[str, Any]:
         """Get current OSA status."""
-        return {
+        status = {
             'model': self.model,
             'conversations': len(self.conversation_context),
             'learning_entries': len(self.learning_memory),
             'last_intent': self.conversation_context[-1]['intent'] if self.conversation_context else None,
             'ollama_connected': self.client is not None
         }
+        
+        # Add LangChain status if available
+        if self.langchain_engine:
+            langchain_status = self.langchain_engine.get_system_status()
+            status['langchain'] = langchain_status
+        else:
+            status['langchain'] = {'available': False}
+        
+        return status
     
     async def shutdown(self):
         """Shutdown OSA gracefully."""
         self.logger.info("Shutting down OSA Autonomous...")
+        
+        # Shutdown LangChain systems
+        if self.langchain_engine:
+            try:
+                await self.langchain_engine.shutdown()
+                self.logger.info("✓ LangChain systems shut down")
+            except Exception as e:
+                self.logger.error(f"Error shutting down LangChain: {e}")
+        
         # Could save state here if needed
-        pass
+        self.logger.info("✓ OSA Autonomous shutdown complete")
