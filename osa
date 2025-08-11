@@ -271,67 +271,113 @@ class OSATerminal:
         width = min(self.terminal_width - 4, 100)
         print(f"{Colors.DIM}╰{'─' * (width - 2)}╯{Colors.RESET}")
     
-    async def process_command(self, command: str) -> bool:
+    async def process_command(self, command: str):
         """
         Process special commands.
-        Returns True if command was handled, False otherwise.
         """
-        command = command.strip()
+        command = command.strip().lower()
         
-        if command == "/exit" or command == "/quit":
-            return await self.shutdown()
+        if command in ["/exit", "/quit"]:
+            await self.shutdown()
+            return
         
         elif command == "/clear":
             self.clear_screen()
-            return True
+            self.print_banner()
+            return
         
         elif command == "/help":
             self.show_help()
-            return True
+            return
         
         elif command == "/history":
             self.show_history()
-            return True
+            return
         
         elif command == "/status":
             self.show_status()
-            return True
+            return
+        
+        elif command == "/reset":
+            if self.osa:
+                self.osa.conversation_context = []
+                print(f"{Colors.GREEN}✓{Colors.RESET} Conversation context reset\n")
+            return
+        
+        elif command == "/model":
+            if self.osa:
+                print(f"\n{Colors.CYAN}Current model:{Colors.RESET} {self.osa.model}\n")
+            return
+        
+        elif command == "/version":
+            print(f"\n{Colors.CYAN}OSA Version:{Colors.RESET} 3.0 Claude-Style\n")
+            return
         
         
         elif command == "/save":
             self.save_session()
-            return True
+            return
         
-        return False
+        else:
+            print(f"{Colors.YELLOW}Unknown command:{Colors.RESET} {command}")
+            print(f"{Colors.DIM}Type / to see available commands{Colors.RESET}\n")
+            return
+    
+    def show_command_suggestions(self):
+        """Show available commands when user types /."""
+        print(f"\n{Colors.CYAN}Available commands:{Colors.RESET}")
+        print(f"{Colors.DIM}{'─' * 40}{Colors.RESET}")
+        
+        commands = [
+            ("/help", "Show detailed help"),
+            ("/exit", "Exit OSA"),
+            ("/clear", "Clear screen"),
+            ("/history", "Show command history"),
+            ("/save", "Save current session"),
+            ("/status", "Show OSA status"),
+            ("/reset", "Reset conversation context"),
+            ("/model", "Show current model"),
+            ("/version", "Show OSA version")
+        ]
+        
+        for cmd, desc in commands:
+            print(f"  {Colors.CYAN}{cmd:12}{Colors.RESET} {Colors.DIM}{desc}{Colors.RESET}")
+        
+        print(f"\n{Colors.DIM}Or just type naturally and I'll understand!{Colors.RESET}\n")
     
     def show_help(self):
         """Show help information."""
-        if RICH_AVAILABLE:
-            help_text = """
-# OSA Commands
-
-## Navigation
-- `/help` - Show this help
-- `/exit` or `/quit` - Exit OSA
-- `/clear` - Clear screen
-
-## Session
-- `/history` - Show command history
-- `/save` - Save current session
-- `/status` - Show OSA status
-
-## Tips
-- Use arrow keys to navigate history
-- Tab completion available
-- Ctrl+C to interrupt current task
-- Ctrl+D to exit
-"""
-            console.print(Markdown(help_text))
-        else:
-            print("\nOSA Commands:")
-            print("-" * 40)
-            for cmd, desc in self.config['shortcuts'].items():
-                print(f"{cmd:15} - {desc}")
+        print(f"\n{Colors.CYAN}OSA Help{Colors.RESET}")
+        print(f"{Colors.DIM}{'=' * 60}{Colors.RESET}\n")
+        
+        sections = [
+            ("Navigation", [
+                ("/help", "Show this help"),
+                ("/exit or /quit", "Exit OSA"),
+                ("/clear", "Clear screen")
+            ]),
+            ("Session", [
+                ("/history", "Show command history"),
+                ("/save", "Save current session"),
+                ("/status", "Show OSA status"),
+                ("/reset", "Reset conversation context")
+            ]),
+            ("Information", [
+                ("/model", "Show current model"),
+                ("/version", "Show OSA version")
+            ]),
+            ("Tips", [
+                ("Arrow keys", "Navigate history"),
+                ("Tab", "Auto-completion"),
+                ("Ctrl+C", "Cancel operation"),
+                ("Ctrl+D", "Exit OSA")
+            ])
+        ]
+        
+        for section_name, items in sections:
+            print(f"{Colors.BOLD}{section_name}:{Colors.RESET}")
+            for cmd, desc in items:
+                print(f"  {Colors.CYAN}{cmd:20}{Colors.RESET} {Colors.DIM}{desc}{Colors.RESET}")
             print()
     
     def show_history(self):
@@ -398,9 +444,19 @@ class OSATerminal:
         })
         
         try:
+            # Check for slash command or suggestions
+            if prompt == '/':
+                self.show_command_suggestions()
+                return
+            
             # Check for exit
             if prompt.lower() in ['exit', 'quit', 'bye']:
                 await self.shutdown()
+                return
+            
+            # Check for slash commands
+            if prompt.startswith('/'):
+                await self.process_command(prompt)
                 return
             
             # Show thinking
@@ -507,15 +563,12 @@ class OSATerminal:
                 if not user_input.strip():
                     continue
                 
-                # Check for special commands (minimal set)
-                if user_input.startswith('/'):
-                    if await self.process_command(user_input):
-                        if not self.running:
-                            break
-                        continue
-                
-                # Process prompt autonomously
+                # Process prompt (handles both commands and natural language)
                 await self.process_prompt(user_input)
+                
+                # Check if should exit
+                if not self.running:
+                    break
                 
             except (KeyboardInterrupt, EOFError):
                 # Ctrl+C or Ctrl+D pressed
