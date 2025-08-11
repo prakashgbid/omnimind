@@ -10,6 +10,7 @@ langchain==0.1.0
 langchain-openai==0.0.5
 langchain-anthropic==0.1.0
 langchain-community==0.0.20
+langgraph==0.0.20
 
 # LLM Providers
 openai==1.12.0
@@ -22,6 +23,7 @@ pinecone-client==2.2.0
 sentence-transformers==2.3.1
 faiss-cpu==1.7.4
 tiktoken==0.5.2
+qdrant-client==1.7.0
 
 # Embeddings & Processing
 transformers==4.35.0

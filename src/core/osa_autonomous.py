@@ -26,6 +26,7 @@ from .self_learning import get_learning_system, LearningDomain, FeedbackType
 from .task_planner import get_task_planner, TaskType, TaskPriority
 from .mcp_client import get_mcp_client
 from .code_generator import get_code_generator, CodeGenerationRequest, CodeType, ProgrammingLanguage
+from .agent_orchestrator import get_agent_orchestrator, AgentType, CollaborationMode
 
 
 class IntentType(Enum):
@@ -98,6 +99,14 @@ class OSAAutonomous:
             self.logger.info("Code generation system initialized")
         except Exception as e:
             self.logger.error(f"Failed to initialize code generator: {e}")
+        
+        # Initialize multi-agent orchestrator
+        self.agent_orchestrator = None
+        try:
+            self.agent_orchestrator = get_agent_orchestrator(self.langchain_engine, config)
+            self.logger.info("Multi-agent orchestrator initialized")
+        except Exception as e:
+            self.logger.error(f"Failed to initialize agent orchestrator: {e}")
         
         # Initialize Ollama client (fallback)
         self.client = None
@@ -325,6 +334,40 @@ class OSAAutonomous:
         }
         return mapping.get(intent, TaskType.ANALYSIS)
     
+    async def _should_use_multi_agent(self, user_input: str, intent: IntentType) -> bool:
+        """Determine if task requires multi-agent collaboration"""
+        # Multi-agent indicators
+        multi_agent_keywords = [
+            "research and", "analyze and", "create and",
+            "then", "after that", "followed by",
+            "multiple", "various", "comprehensive",
+            "end-to-end", "full stack", "complete system"
+        ]
+        
+        input_lower = user_input.lower()
+        
+        # Check for multi-step indicators
+        has_multi_step = any(keyword in input_lower for keyword in multi_agent_keywords)
+        
+        # Check for multiple domains
+        domain_count = sum([
+            "code" in input_lower or "program" in input_lower,
+            "research" in input_lower or "find" in input_lower,
+            "analyze" in input_lower or "evaluate" in input_lower,
+            "deploy" in input_lower or "execute" in input_lower,
+            "plan" in input_lower or "design" in input_lower
+        ])
+        
+        # Check intent complexity
+        complex_intents = [
+            IntentType.CODE_GENERATION,
+            IntentType.PROBLEM_SOLVING,
+            IntentType.ANALYSIS,
+            IntentType.SYSTEM_TASK
+        ]
+        
+        return (has_multi_step or domain_count >= 2) and intent in complex_intents
+    
     async def _needs_task_decomposition(self, user_input: str, intent: IntentType) -> bool:
         """Determine if input requires task decomposition"""
         # Complex task indicators
@@ -368,8 +411,37 @@ class OSAAutonomous:
             "timestamp": datetime.now().isoformat()
         })
         
+        # Check if we should use multi-agent orchestration
+        if await self._should_use_multi_agent(user_input, intent):
+            # Use agent orchestrator for complex multi-step tasks
+            result = await self.agent_orchestrator.execute_task(
+                task=user_input,
+                context={
+                    "intent": intent.value,
+                    "confidence": confidence,
+                    "conversation_context": self.conversation_context[-3:] if self.conversation_context else []
+                }
+            )
+            
+            if result["success"]:
+                # Format multi-agent response
+                response_parts = [status_msg, "\n🤝 Multi-Agent Collaboration Complete\n"]
+                
+                # Show agent handoffs
+                if result["handoffs"]:
+                    response_parts.append("Agent Flow:")
+                    for handoff in result["handoffs"]:
+                        response_parts.append(f"  {handoff['from']} → {handoff['to']}")
+                    response_parts.append("")
+                
+                # Show final result
+                response_parts.append("Result:")
+                response_parts.append(result["result"] or "Task completed successfully")
+                
+                return "\n".join(response_parts)
+        
         # Check if task decomposition is needed
-        if await self._needs_task_decomposition(user_input, intent):
+        elif await self._needs_task_decomposition(user_input, intent):
             # Create and execute a complex task
             task = await self.task_planner.create_task(
                 description=user_input,
@@ -799,6 +871,19 @@ Provide:
             }
         else:
             status['code_generator'] = {'available': False}
+        
+        # Add agent orchestrator status
+        if self.agent_orchestrator:
+            metrics = self.agent_orchestrator.get_metrics()
+            status['agent_orchestrator'] = {
+                'available': True,
+                'total_agents': len(self.agent_orchestrator.agents),
+                'collaboration_mode': self.agent_orchestrator.collaboration_mode.value,
+                'total_tasks': metrics['total_tasks'],
+                'successful_tasks': metrics['successful_tasks']
+            }
+        else:
+            status['agent_orchestrator'] = {'available': False}
         
         return status
     
