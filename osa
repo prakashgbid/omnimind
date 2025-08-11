@@ -213,17 +213,6 @@ class OSATerminal:
         """Show error message."""
         print(f"\n{Colors.RED}✗{Colors.RESET} {Colors.BOLD}Error:{Colors.RESET} {error}")
     
-    def show_status(self):
-        """Show OSA status."""
-        if self.osa:
-            status = self.osa.get_status()
-            
-            print("\n📊 OSA Status:")
-            print("-" * 40)
-            for key, value in status.items():
-                print(f"{key:20}: {value}")
-            print(f"Session Duration    : {str(datetime.now() - self.session_start).split('.')[0]}")
-        print()
     
     def clear_screen(self):
         """Clear the terminal screen."""
@@ -400,25 +389,20 @@ class OSATerminal:
         if self.osa:
             status = self.osa.get_status()
             
-            if RICH_AVAILABLE:
-                table = Table(title="OSA Status", show_header=True)
-                table.add_column("Property", style="cyan")
-                table.add_column("Value", style="green")
-                
-                table.add_row("Model", status['model'])
-                table.add_row("Conversations", str(status.get('conversations', 0)))
-                table.add_row("Learning Entries", str(status.get('learning_entries', 0)))
-                table.add_row("Last Intent", status.get('last_intent', 'None'))
-                table.add_row("Session Duration", str(datetime.now() - self.session_start).split('.')[0])
-                table.add_row("Ollama Connected", "✓" if status['ollama_connected'] else "✗")
-                
-                console.print(table)
-            else:
-                print("\n📊 OSA Status:")
-                print("-" * 40)
-                for key, value in status.items():
-                    print(f"{key:20}: {value}")
-                print(f"Session Duration    : {str(datetime.now() - self.session_start).split('.')[0]}")
+            print(f"\n{Colors.CYAN}📊 OSA Status{Colors.RESET}")
+            print(f"{Colors.DIM}{'─' * 40}{Colors.RESET}")
+            
+            items = [
+                ("Model", status['model']),
+                ("Conversations", str(status.get('conversations', 0))),
+                ("Learning Entries", str(status.get('learning_entries', 0))),
+                ("Last Intent", status.get('last_intent', 'None')),
+                ("Session Duration", str(datetime.now() - self.session_start).split('.')[0]),
+                ("Ollama Connected", "✓" if status['ollama_connected'] else "✗")
+            ]
+            
+            for key, value in items:
+                print(f"  {Colors.BOLD}{key:20}{Colors.RESET} {Colors.GREEN}{value}{Colors.RESET}")
             print()
     
     def save_session(self):
